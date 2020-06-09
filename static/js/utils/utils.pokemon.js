@@ -5,6 +5,7 @@ const rarityNames = ['Common', 'Uncommon', 'Rare', 'Very Rare', 'Ultra Rare', 'N
 var pokemonSearchList = []
 const availablePokemonCount = 649
 let pokemonIds = new Set()
+const shiny_list = [1, 4, 7, 10, 16, 19, 23, 25, 27, 41, 43, 48, 50, 52, 54, 56, 58, 60, 63, 66, 72, 74, 77, 81, 86, 88, 90, 92, 95, 96, 98, 100, 102, 104, 108, 109, 111, 113, 115, 116, 123, 126, 127, 128, 129, 131, 133, 138, 140, 142, 147, 152, 155, 158, 161, 170, 177, 179, 183, 185, 190, 191, 193, 198, 200, 202, 204, 206, 207, 209, 213, 215, 216, 220, 225, 227, 228, 234, 246, 252, 255, 258, 261, 263, 265, 270, 273, 276, 278, 280, 287, 290, 296, 300, 302, 303, 304, 307, 309, 311, 312, 313, 314, 315, 318, 320, 325, 328, 333, 335, 336, 337, 338, 339, 343, 345, 347, 349, 351, 353, 355, 359, 361, 366, 370, 371, 374, 387, 390, 393, 403, 412, 425, 427, 431, 436, 443, 449, 451, 453, 459, 504, 506, 532, 562, 572, 599]
 
 function initPokemonData() {
     if (!$.isEmptyObject(pokemonData)) {
@@ -211,9 +212,13 @@ function setupPokemonMarker(pokemon, layerGroup) {
 }
 
 function searchPokemon(searchtext) {
+    if (searchtext.toLowerCase() == 'shiny' || searchtext.toLowerCase() == 'schillernd') {
+       return shiny_list
+    }
     var searchsplit = searchtext.split(',')
     var foundPokemon = []
     var operator = 'add'
+    var typen = ['normal','feuer', 'wasser', 'pflanze', 'elektro', 'eis', 'kampf', 'gift', 'boden', 'flug', 'psycho', 'käfer', 'gestein', 'geist', 'drache', 'unlicht', 'stahl', 'fee']
     $.each(searchsplit, function (k, searchstring) {
         if (searchstring.substring(0, 1) === '+') {
             searchstring = searchstring.substring(1)
@@ -232,11 +237,20 @@ function searchPokemon(searchtext) {
             }
         } else if (searchstring.length > 0 && searchstring !== '-' && searchstring !== '+') {
             $.each(pokemonSearchList, function (idx, item) {
-                if (item.name.toLowerCase().includes(searchstring.toLowerCase()) ||
+                if ((!typen.indexOf(searchstring.toLowerCase()) > -1) && (item.name.toLowerCase().includes(searchstring.toLowerCase()) ||
                         item.id.toString() === searchstring.toString() ||
-                        item.type1.toLowerCase().includes(searchstring.toLowerCase()) ||
-                        item.type2.toLowerCase().includes(searchstring.toLowerCase()) ||
-                        item.gen.toString() === searchstring.toLowerCase()) {
+                        //item.type1.toLowerCase().includes(searchstring.toLowerCase()) ||
+                        //item.type2.toLowerCase().includes(searchstring.toLowerCase()) ||
+                        item.gen.toString() === searchstring.toLowerCase())) {
+                    if (operator === 'add') {
+                        foundPokemon.push(item['id'])
+                    } else {
+                        delete foundPokemon[foundPokemon.indexOf(item['id'])]
+                    }
+                }
+                if ((typen.indexOf(searchstring.toLowerCase()) > -1) &&
+                        (item.type1.toLowerCase() == (searchstring.toLowerCase()) ||
+                        item.type2.toLowerCase() == (searchstring.toLowerCase()))) {
                     if (operator === 'add') {
                         foundPokemon.push(item['id'])
                     } else {

@@ -1,4 +1,5 @@
 {
+  "You can search for: Name, ID, Type and Generation. Multiple search terms can be used by separating them with commas. Exclusion is possible by prepending '-' to a search term.": "Mögliche Suchen: Nummer, Name, Generation, Typ, Shiny, Schillernd,... Mehrere Eingaben mit Komma. Ein '-' kann Eingaben ausschließen.",
   "Donate": "Spenden",
   "Statistics": "Statistiken",
   "Icon size": "Symbolgröße",

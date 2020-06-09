@@ -178,7 +178,7 @@ var StoreOptions = {
         type: StoreTypes.Boolean
     },
     'showGyms': {
-        default: true,
+        default: false,
         type: StoreTypes.Boolean
     },
     'useGymSidebar': {
@@ -254,7 +254,7 @@ var StoreOptions = {
         type: StoreTypes.JSON
     },
     'showPokestops': {
-        default: true,
+        default: false,
         type: StoreTypes.Boolean
     },
     'showPokestopsNoEvent': {
@@ -426,7 +426,7 @@ var StoreOptions = {
         type: StoreTypes.Boolean
     },
     'mapStyle': {
-        default: 'mapnik',
+        default: 'cartodbpositron',
         type: StoreTypes.String
     },
     'mapServiceProvider': {
@@ -434,11 +434,11 @@ var StoreOptions = {
         type: StoreTypes.String
     },
     'startLocationMarkerStyle': {
-        default: 'pokesition',
+        default: 'none',
         type: StoreTypes.String
     },
     'userLocationMarkerStyle': {
-        default: 'mobile',
+        default: 'none',
         type: StoreTypes.String
     },
     'darkMode': {
