@@ -53,7 +53,7 @@
               <li><a href="javascript:void(0);" data-target="settings-sidenav" class="sidenav-trigger"><i class="material-icons">menu</i></a></li>
               <li>
                 <a href="{{ url_for('map_page') }}" class="brand-logo">
-                  {{ map_title }}{% if header_image %}<img src="{{ url_for('static', filename='images/header/') }}{{ header_image_name }}" class="brand-logo-image" height="32">{% endif %}
+                  {{ map_title }}
                 </a>
               </li>
             </ul>
@@ -1122,28 +1122,6 @@
               </div>
             </div>
             {% endif %}
-            <div class="form-control">
-              <div class="switch">
-                <label>
-                  <input type="checkbox" id="ranges-switch">
-                  <span class="lever"></span>
-                  {{ i18n('Interaction ranges') }}
-                </label>
-              </div>
-            </div>
-            <div id="range-type-select-wrapper">
-              <div class="form-control">
-                <div class="input-field">
-                  <div class="select-title">{{ i18n('Filter interaction ranges') }}</div>
-                  <select id="range-type-select" multiple>
-                    <option value="1">{{ i18n('Pokémon ranges') }}</option>
-                    <option value="2">{{ i18n('Gym ranges') }}</option>
-                    <option value="3">{{ i18n('PokéStop ranges') }}</option>
-                    <option value="4">{{ i18n('Spawn point ranges') }}</option>
-                  </select>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </li>
@@ -1170,28 +1148,6 @@
                   <span class="lever"></span>
                   {{ i18n('Start map at last position') }}
                 </label>
-              </div>
-            </div>
-            {% if settings.isStartMarkerMovable %}
-            <div class="form-control">
-              <div class="switch">
-                <label>
-                  <input type="checkbox" id="lock-start-marker-switch">
-                  <span class="lever"></span>
-                  {{ i18n('Lock start location marker') }}
-                </label>
-              </div>
-            </div>
-            {% endif %}
-            <div id="follow-user-location-wrapper">
-              <div class="form-control">
-                <div class="switch">
-                  <label>
-                    <input type="checkbox" id="follow-user-location-switch">
-                    <span class="lever"></span>
-                    {{ i18n('Follow me') }}
-                  </label>
-                </div>
               </div>
             </div>
           </div>
@@ -1284,24 +1240,6 @@
                 </div>
               </div>
               {% endif %}
-              <div class="form-control">
-                <div class="switch">
-                  <label>
-                    <input type="checkbox" id="tiny-rattata-notifs-switch">
-                    <span class="lever"></span>
-                    {{ i18n('Tiny Rattata notifs') }}
-                  </label>
-                </div>
-              </div>
-              <div class="form-control">
-                <div class="switch">
-                  <label>
-                    <input type="checkbox" id="big-magikarp-notifs-switch">
-                    <span class="lever"></span>
-                    {{ i18n('Big Magikarp notifs') }}
-                  </label>
-                </div>
-              </div>
               {% endif %}
               <div class="form-control">
                 <div class="switch">
@@ -1309,15 +1247,6 @@
                     <input type="checkbox" id="notif-pokemon-only-switch">
                     <span class="lever"></span>
                     {{ i18n('Show notif Pokémon only') }}
-                  </label>
-                </div>
-              </div>
-              <div class="form-control">
-                <div class="switch">
-                  <label>
-                    <input type="checkbox" id="notif-pokemon-always-switch">
-                    <span class="lever"></span>
-                    {{ i18n('Always show notif Pokémon') }}
                   </label>
                 </div>
               </div>
@@ -1490,25 +1419,6 @@
                 <select id="map-service-provider-select">
                   <option value="googlemaps">Google Maps</option>
                   <option value="applemaps">Apple Maps</option>
-                  <option value="bingmaps">Bing Maps</option>
-                  <option value="openstreetmap">OpenStreetMap</option>
-                  <option value="waze">Waze</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-control">
-              <div class="input-field">
-                <div class="select-title">{{ i18n('Start location marker icon') }}</div>
-                <select id="start-location-marker-icon-select">
-                  <!-- Options are dynamically added. -->
-                </select>
-              </div>
-            </div>
-            <div class="form-control">
-              <div class="input-field">
-                <div class="select-title">{{ i18n('My location marker icon') }}</div>
-                <select id="user-location-marker-icon-select">
-                  <!-- Options are dynamically added. -->
                 </select>
               </div>
             </div>
@@ -1549,6 +1459,31 @@
             </div>
           </div>
           {% endif %}
+        </div>
+      </li>
+      <li>
+        <div class="collapsible-header"><i class="material-icons">accessible</i>Mehr</div>
+        <div class="collapsible-body">
+          <div class="settings-container">
+            <div class="form-control">
+              <div><a href="telegram" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left"></i>Telegram</a></div>
+            </div>
+            <div class="form-control">
+              <div><a href="nester" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left"></i>Nester-Map</a></div>
+            </div>
+            <div class="form-control">
+              <div><a href="questmap" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left"></i>Quest-Map</a></div>
+            </div>
+            <div class="form-control">
+              <div><a href="https://t.me/gokiel_privat_bot" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left"></i>Bot: Pokemon</a></div>
+            </div>
+            <div class="form-control">
+              <div><a href="https://t.me/GoKielRocketManBot" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left"></i>Bot: Rocket</a></div>
+            </div>
+            <div class="form-control">
+              <div><a href="https://t.me/nerthusbot" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left"></i>Bot: Raid</a></div>
+            </div>
+          </div>
         </div>
       </li>
     </ul>
