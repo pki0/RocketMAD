@@ -230,11 +230,11 @@ function pokemonLabel(item) {
               </div>
               <div>
                ${i8ln('Charge')}: <strong>${move2Name}</strong> <img class='move-type-icon' src='static/images/types/${move2Type.toLowerCase()}.png' title='${i8ln(move2Type)}' width='15'>
-              </div>
+              </div>` +
               //<div>
                 //Weight: <strong>${weight}kg</strong> | Height: <strong>${height}m</strong>
               //</div>
-              ${catchRatesDisplay}
+              `${catchRatesDisplay}
             </div>`
 
         let rarityDisplay = ''
