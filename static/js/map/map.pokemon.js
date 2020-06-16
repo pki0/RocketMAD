@@ -223,17 +223,17 @@ function pokemonLabel(item) {
                 IV: <strong><span style='color: ${ivColor};'>${iv}%</span></strong> (A<strong>${atk}</strong> | D<strong>${def}</strong> | S<strong>${sta}</strong>)
               </div>
               <div>
-                CP: <strong>${cp}</strong> | Level: <strong>${level}</strong>
+                ${i8ln('CP')}: <strong>${cp}</strong> | Level: <strong>${level}</strong>
               </div>
               <div>
-               Fast: <strong>${move1Name}</strong> <img class='move-type-icon' src='static/images/types/${move1Type.toLowerCase()}.png' title='${i8ln(move1Type)}' width='15'>
+               ${i8ln('Fast')}: <strong>${move1Name}</strong> <img class='move-type-icon' src='static/images/types/${move1Type.toLowerCase()}.png' title='${i8ln(move1Type)}' width='15'>
               </div>
               <div>
-               Charge: <strong>${move2Name}</strong> <img class='move-type-icon' src='static/images/types/${move2Type.toLowerCase()}.png' title='${i8ln(move2Type)}' width='15'>
+               ${i8ln('Charge')}: <strong>${move2Name}</strong> <img class='move-type-icon' src='static/images/types/${move2Type.toLowerCase()}.png' title='${i8ln(move2Type)}' width='15'>
               </div>
-              <div>
-                Weight: <strong>${weight}kg</strong> | Height: <strong>${height}m</strong>
-              </div>
+              //<div>
+                //Weight: <strong>${weight}kg</strong> | Height: <strong>${height}m</strong>
+              //</div>
               ${catchRatesDisplay}
             </div>`
 

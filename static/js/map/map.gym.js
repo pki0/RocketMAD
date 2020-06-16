@@ -322,7 +322,7 @@ function gymLabel(gym) {
 
         gymLeaderDisplay = `
             <div>
-              Gym leader: <strong>${getPokemonName(gym.guard_pokemon_id)} <a href='https://pokemongo.gamepress.gg/pokemon/${gym.guard_pokemon_id}' target='_blank' title='View on GamePress'>#${gym.guard_pokemon_id}</a></strong>
+              ${i8ln('Gym leader')}: <strong>${getPokemonName(gym.guard_pokemon_id)} <a href='https://pokemongo.gamepress.gg/pokemon/${gym.guard_pokemon_id}' target='_blank' title='View on GamePress'>#${gym.guard_pokemon_id}</a></strong>
             </div>`
     }
 
@@ -378,13 +378,13 @@ function gymLabel(gym) {
                     </div>
                     <div class='info-container'>
                       <div>
-                        CP: <strong>${raid.cp}</strong>
+                        ${i8ln('CP')}: <strong>${raid.cp}</strong>
                       </div>
                       <div>
-                        Fast: <strong>${fastMoveName}</strong> <img class='move-type-icon' src='static/images/types/${fastMoveType.toLowerCase()}.png' title='${i8ln(fastMoveType)}' width='15'>
+                        ${i8ln('Fast')}: <strong>${fastMoveName}</strong> <img class='move-type-icon' src='static/images/types/${fastMoveType.toLowerCase()}.png' title='${i8ln(fastMoveType)}' width='15'>
                       </div>
                       <div>
-                        Charge: <strong>${chargeMoveName}</strong> <img class='move-type-icon' src='static/images/types/${chargeMoveType.toLowerCase()}.png' title='${i8ln(chargeMoveType)}' width='15'>
+                        ${i8ln('Charge')}: <strong>${chargeMoveName}</strong> <img class='move-type-icon' src='static/images/types/${chargeMoveType.toLowerCase()}.png' title='${i8ln(chargeMoveType)}' width='15'>
                       </div>
                     </div>
                     <div>
@@ -411,10 +411,10 @@ function gymLabel(gym) {
                     </div>
                     <div class='info-container'>
                       <div>
-                        Start: <strong>${timestampToTime(raid.start)} (<span class='label-countdown' disappears-at='${raid.start}'>00m00s</span>)</strong>
+                        ${i8ln('Start')}: <strong>${timestampToTime(raid.start)} (<span class='label-countdown' disappears-at='${raid.start}'>00m00s</span>)</strong>
                       </div>
                       <div>
-                        End: <strong>${timestampToTime(raid.end)} (<span class='label-countdown' disappears-at='${raid.end}'>00m00s</span>)</strong>
+                        ${i8ln('End')}: <strong>${timestampToTime(raid.end)} (<span class='label-countdown' disappears-at='${raid.end}'>00m00s</span>)</strong>
                       </div>
                     </div>
                     <div>
@@ -432,7 +432,7 @@ function gymLabel(gym) {
             <div id='gym-container-left'>
               ${gymImageDisplay}
               <div class='team ${teamName.toLowerCase()}'>
-                <strong>${teamName}</strong>
+                <strong>${i8ln(teamName)}</strong>
               </div>
             </div>
             <div id='gym-container-right'>
@@ -442,14 +442,14 @@ function gymLabel(gym) {
               <div class='info-container'>
                 ${strenghtDisplay}
                 <div>
-                  Free slots: <strong>${gym.slots_available}</strong>
+                  ${i8ln('Free slots')}: <strong>${gym.slots_available}</strong>
                 </div>
                 ${gymLeaderDisplay}
                 <div>
-                  Last scanned: <strong>${timestampToDateTime(gym.last_scanned)}</strong>
+                  ${i8ln('Last scanned')}: <strong>${timestampToDateTime(gym.last_scanned)}</strong>
                 </div>
                 <div>
-                  Last modified: <strong>${timestampToDateTime(gym.last_modified)}</strong>
+                  ${i8ln('Last modified')}: <strong>${timestampToDateTime(gym.last_modified)}</strong>
                 </div>
               </div>
               <div>

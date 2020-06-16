@@ -225,13 +225,13 @@ function pokestopLabel(pokestop) {
                 </div>
                 <div class='info-container'>
                   <div>
-                    Task: <strong>${quest.task}</strong>
+                    ${i8ln('Task')}: <strong>${quest.task}</strong>
                   </div>
                   <div>
-                    Reward: <strong>${rewardText}</strong>
+                    ${i8ln('Reward')}: <strong>${rewardText}</strong>
                   </div>
                   <div>
-                    Scanned: <strong>${timestampToDateTime(quest.scanned_at)}</strong>
+                    ${i8ln('Scanned')}: <strong>${timestampToDateTime(quest.scanned_at)}</strong>
                   </div>
                 </div>
                 <div>
@@ -256,7 +256,7 @@ function pokestopLabel(pokestop) {
         if (invasionType) {
             typeDisplay = `
                 <div>
-                  Type: <strong>${invasionType}</strong>
+                  ${i8ln('Type')}: <strong>${invasionType}</strong>
                 </div>`
         }
 
@@ -280,7 +280,7 @@ function pokestopLabel(pokestop) {
                 <div class='info-container'>
                   ${typeDisplay}
                   <div>
-                    Grunt: <strong>${grunt}</strong>
+                    ${i8ln('Grunt')}: <strong>${grunt}</strong>
                   </div>
                 </div>
                 <div>
@@ -297,7 +297,7 @@ function pokestopLabel(pokestop) {
         lureDisplay = `
             <div class='lure-container ${lureClass}'>
               <div class='title'>
-                ${lureTypes[pokestop.active_fort_modifier]} Lure
+                ${i8ln(lureTypes[pokestop.active_fort_modifier] + ' Lure')}
               </div>
               <div class='disappear'>
                 ${timestampToTime(lureExpireTime)} (<span class='label-countdown' disappears-at='${lureExpireTime}'>00m00s</span>)
@@ -321,7 +321,7 @@ function pokestopLabel(pokestop) {
               </div>
               ${lureDisplay}
               <div>
-                Last scanned: <strong>${timestampToDateTime(pokestop.last_updated)}</strong>
+                ${i8ln('Last scanned')}: <strong>${timestampToDateTime(pokestop.last_updated)}</strong>
               </div>
               <div>
                 <a href='javascript:void(0);' onclick='javascript:openMapDirections(${pokestop.latitude},${pokestop.longitude},"${settings.mapServiceProvider}");' title='Open in ${mapServiceProviderNames[settings.mapServiceProvider]}'><i class="fas fa-map-marked-alt"></i> ${pokestop.latitude.toFixed(5)}, ${pokestop.longitude.toFixed(5)}</a>
