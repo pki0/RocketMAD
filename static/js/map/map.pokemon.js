@@ -172,7 +172,7 @@ function pokemonLabel(item) {
 
     const formName = form ? getFormName(id, form) : false
     if (formName) {
-        formDisplay = `(${formName})`
+        formDisplay = `(${i8ln(formName)})`
     }
 
     if (weatherBoostedCondition > 0) {

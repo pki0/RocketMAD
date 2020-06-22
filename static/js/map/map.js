@@ -4,6 +4,11 @@
 // Global map.js variables
 //
 
+$.getJSON('static/data/events.json', function(json) {
+    console.log(json); // this will show the info it in firebug console
+});
+
+
 var $gymNameFilter = ''
 var $pokestopNameFilter = ''
 var settingsSideNav
