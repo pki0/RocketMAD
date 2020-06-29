@@ -4,10 +4,6 @@
 // Global map.js variables
 //
 
-$.getJSON('static/data/events.json', function(json) {
-    console.log(json); // this will show the info it in firebug console
-});
-
 
 var $gymNameFilter = ''
 var $pokestopNameFilter = ''
@@ -1798,6 +1794,29 @@ function initSettingsSidebar() {
             window.location.reload()
         }
     })
+
+
+    var eventData = ''
+    var eventName = ''
+    var events
+    $.ajax({
+        cache: false,
+        url: 'static/data/events.json',
+        dataType: 'json',
+        success: function(data) {
+                   for (const [key, value] of Object.entries(data)) {
+                     var tmpstr = value["Name"].split(' ')
+                     for (var i = 0; i < tmpstr.length; i++) {
+                       eventData += i8ln(tmpstr[i]) + ' '
+                     }
+                     eventData += '\nStart: ' + value["Start"] + '\nEnde: ' + value["End"] + '\n\n'
+                   }
+
+                   events = $('#events').text(eventData)
+                   events.html(events.html().replace(/\n/g,'<br/>'))
+                 }
+                });
+
 
     // Pokemon.
     if (serverSettings.pokemons) {
