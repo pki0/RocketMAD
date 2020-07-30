@@ -72,6 +72,7 @@ var settings = {
     excludedQuestItems: null,
     showInvasions: null,
     filterInvasions: null,
+    showInvasionPokemon: null,
     includedLureTypes: null,
     excludedInvasions: null,
     pokestopNotifs: null,
@@ -318,7 +319,8 @@ function initMap() { // eslint-disable-line no-unused-vars
     markers = L.markerClusterGroup({
         disableClusteringAtZoom: settings.clusterZoomLevel + 1,
         maxClusterRadius: serverSettings.maxClusterRadius,
-        spiderfyOnMaxZoom: serverSettings.spiderfyClusters
+        spiderfyOnMaxZoom: serverSettings.spiderfyClusters,
+        removeOutsideVisibleBounds: serverSettings.removeMarkersOutsideViewport
     }).addTo(map)
     markersNoCluster = L.layerGroup().addTo(map)
 
@@ -526,6 +528,7 @@ function initSettings() {
     }
     if (serverSettings.invasions) {
         settings.filterInvasions = Store.get('filterInvasions')
+        settings.showInvasionPokemon = Store.get('showInvasionPokemon')
         settings.excludedInvasions = Store.get('excludedInvasions')
         settings.invasionNotifs = Store.get('invasionNotifs')
         settings.notifInvasions = Store.get('notifInvasions')
@@ -3163,7 +3166,6 @@ function updateStaleMarkers() {
         } else if (map.getBounds().contains(scannedLoc.marker.getLatLng())) {
             updateScannedLocation(id)
         }
-
     })
 
     if (markerChange) {
