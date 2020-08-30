@@ -50,7 +50,7 @@ var StoreTypes = {
 
 var StoreOptions = {
     'showPokemon': {
-        default: true,
+        default: false,
         type: StoreTypes.Boolean
     },
     'filterPokemonById': {
@@ -178,7 +178,7 @@ var StoreOptions = {
         type: StoreTypes.Boolean
     },
     'showGyms': {
-        default: false,
+        default: true,
         type: StoreTypes.Boolean
     },
     'useGymSidebar': {
@@ -214,7 +214,7 @@ var StoreOptions = {
         type: StoreTypes.Number
     },
     'showRaids': {
-        default: true,
+        default: false,
         type: StoreTypes.Boolean
     },
     'filterRaidPokemon': {
@@ -390,11 +390,11 @@ var StoreOptions = {
         type: StoreTypes.Boolean
     },
     'startAtLastLocation': {
-        default: false,
+        default: true,
         type: StoreTypes.Boolean
     },
     'startAtLastLocationPosition': {
-        default: [],
+        default: {lat: 54.32627862534605, lng: 10.12720584869385},
         type: StoreTypes.JSON
     },
     'startLocationPosition': {
@@ -454,7 +454,7 @@ var StoreOptions = {
         type: StoreTypes.Number
     },
     'zoomLevel': {
-        default: 16,
+        default: 14,
         type: StoreTypes.Number
     }
 }
