@@ -863,6 +863,7 @@
                     <option value="3">{{ i18n('Level 3') }}</option>
                     <option value="4">{{ i18n('Level 4') }}</option>
                     <option value="5">{{ i18n('Level 5') }}</option>
+                    <option value="6">{{ i18n('Level 6') }}</option>
                   </select>
                 </div>
               </div>
@@ -1127,6 +1128,41 @@
               </div>
             </div>
             {% endif %}
+<<<<<<< HEAD
+=======
+            {% if settings.ranges and (settings.pokemons or settings.gyms or settings.pokestops or settings.spawnpoints) %}
+            <div class="form-control">
+              <div class="switch">
+                <label>
+                  <input type="checkbox" id="ranges-switch">
+                  <span class="lever"></span>
+                  {{ i18n('Interaction ranges') }}
+                </label>
+              </div>
+            </div>
+            <div id="range-type-select-wrapper">
+              <div class="form-control">
+                <div class="input-field">
+                  <div class="select-title">{{ i18n('Filter interaction ranges') }}</div>
+                  <select id="range-type-select" multiple>
+                    {% if settings.pokemons %}
+                    <option value="1">{{ i18n('Pokémon ranges') }}</option>
+                    {% endif %}
+                    {% if settings.gyms %}
+                    <option value="2">{{ i18n('Gym ranges') }}</option>
+                    {% endif %}
+                    {% if settings.pokestops %}
+                    <option value="3">{{ i18n('PokéStop ranges') }}</option>
+                    {% endif %}
+                    {% if settings.spawnpoints %}
+                    <option value="4">{{ i18n('Spawn point ranges') }}</option>
+                    {% endif %}
+                  </select>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+>>>>>>> 76045895dcfd35666d0241af8f3a77632baef09f
           </div>
         </div>
       </li>
@@ -1302,6 +1338,7 @@
                     <option value="3">{{ i18n('Level 3') }}</option>
                     <option value="4">{{ i18n('Level 4') }}</option>
                     <option value="5">{{ i18n('Level 5') }}</option>
+                    <option value="6">{{ i18n('Level 6') }}</option>
                   </select>
                 </div>
               </div>

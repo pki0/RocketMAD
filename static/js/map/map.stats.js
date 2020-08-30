@@ -2,11 +2,7 @@
 let tabsInstance
 
 function updateStatsTable() {
-    if (!serverSettings.statsSidebar) {
-        return
-    }
-
-    if (!statsSideNav.isOpen) {
+    if (!serverSettings.statsSidebar || !statsSideNav.isOpen) {
         return
     }
 
@@ -75,7 +71,7 @@ function updateStatsTable() {
 
     if (selectedTab === '#gym-stats-tab') {
         let teamCounts = [0, 0, 0, 0]
-        let eggCounts = [0, 0, 0, 0, 0]
+        let eggCounts = [0, 0, 0, 0, 0, 0]
         let raidPokemonData = {}
         let gymCount = 0
         let eggCount = 0
@@ -130,7 +126,7 @@ function updateStatsTable() {
         }
 
         let eggRows = []
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < eggCounts.length; i++) {
             if (eggCounts[i] > 0) {
                 eggRows.push(
                     [
