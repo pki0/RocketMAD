@@ -289,7 +289,8 @@ def create_app():
             'nestParks': user_args.nest_parks,
             'nestParksFileName': user_args.nest_parks_filename,
             'exParks': user_args.ex_parks,
-            'exParksFileName': user_args.ex_parks_filename
+            'exParksFileName': user_args.ex_parks_filename,
+            'kiel': not user_args.kiel
         }
 
         return render_template(
@@ -314,6 +315,7 @@ def create_app():
                                   not user_args.no_pokemon_history_page),
             quest_page=settings['quests'] and not user_args.no_quest_page,
             analytics_id=user_args.analytics_id,
+            kiel=user_args.kiel,
             settings=settings,
             i18n=i8ln
         )

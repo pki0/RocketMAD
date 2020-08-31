@@ -583,6 +583,8 @@ def get_args(access_config=None):
                        help='Filename (without .json) of rarity JSON '
                             'file. Useful when running multiple '
                             'instances. Default: rarity')
+    group.add_argument('-kiel', '--kiel',
+                       default=[])
 
     args = parser.parse_args()
     dargs = vars(args)
@@ -648,7 +650,8 @@ def get_args(access_config=None):
             'motd_pages',
             'show_motd_always',
             'geofence_file',
-            'geofence_exclude_file'
+            'geofence_exclude_file',
+            'kiel'
         ]
 
         access_parser = configparser.ConfigParser(allow_no_value=True,

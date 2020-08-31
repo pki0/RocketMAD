@@ -394,7 +394,8 @@ var StoreOptions = {
         type: StoreTypes.Boolean
     },
     'startAtLastLocationPosition': {
-        default: {lat: 54.32627862534605, lng: 10.12720584869385},
+        //default: {lat: 54.32627862534605, lng: 10.12720584869385},
+        default: {lat: serverSettings.centerLat, lng: serverSettings.centerLng},
         type: StoreTypes.JSON
     },
     'startLocationPosition': {

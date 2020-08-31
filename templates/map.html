@@ -54,12 +54,12 @@
             <ul>
               <li><a href="javascript:void(0);" data-target="settings-sidenav" class="sidenav-trigger"><i class="material-icons">menu</i></a></li>
               <li>
-                <a href="{{ url_for('map_page') }}" class="brand-logo">
+                <a href="{{ url_for('map_page') }}" class="brand-logo" style="margin-right:1px">
                   {{ map_title }}
                 </a>
               </li>
               <li>
-                <a href="spenden" target="_blank" class="brand-logo" style="margin-left:70px;font-size: 1.7rem !important"><i class="material-icons left">favorite</i>Spenden</a>
+                <a href="{{ donate_url }}" target="_blank" class="brand-logo" style="margin-left:110px;font-size: 1.5rem !important"><i class="material-icons right">favorite</i></a>
               </li>
             </ul>
             <ul class="right">
@@ -1128,8 +1128,6 @@
               </div>
             </div>
             {% endif %}
-<<<<<<< HEAD
-=======
             {% if settings.ranges and (settings.pokemons or settings.gyms or settings.pokestops or settings.spawnpoints) %}
             <div class="form-control">
               <div class="switch">
@@ -1162,7 +1160,6 @@
               </div>
             </div>
             {% endif %}
->>>>>>> 76045895dcfd35666d0241af8f3a77632baef09f
           </div>
         </div>
       </li>
@@ -1514,17 +1511,19 @@
         <div class="collapsible-body">
           <div class="settings-container">
             <div class="form-control">
-              <div><a href="spenden" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left">favorite</i>Spenden</a></div>
+              <div><a href="{{ donate_url }}" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left">favorite</i>Spenden</a></div>
             </div>
             <div class="form-control">
-              <div><a href="telegram" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left">send</i>Telegram-Gruppen</a></div>
+              <div><a href="{{ telegram_url }}" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left">send</i>Telegram-Gruppen</a></div>
             </div>
+          {% if kiel %}
             <div class="form-control">
               <div><a href="nester" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left">pets</i>Nester-Map</a></div>
             </div>
             <div class="form-control">
               <div><a href="questmap" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left">not_listed_location</i>Quest-Map</a></div>
             </div>
+          {% endif %}
             <div class="form-control">
               <div><a href="https://t.me/gokiel_privat_bot" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left">android</i>Bot: Pokemon</a></div>
             </div>
