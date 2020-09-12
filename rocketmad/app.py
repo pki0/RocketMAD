@@ -2,19 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import gc
-import pickle
 import logging
 import redis
 import time
 
-from bisect import bisect_left
 from datetime import datetime, timezone
-from flask import (abort, current_app, Flask, jsonify, redirect,
-                   render_template, request, send_file, send_from_directory,
-                   session, url_for)
+from flask import (abort, Flask, jsonify, redirect, render_template, request,
+                   send_file, send_from_directory, session, url_for)
 from flask.json import JSONEncoder
 from flask_cachebuster import CacheBuster
-from flask_caching import Cache
 from flask_compress import Compress
 from flask_cors import CORS
 from flask_session import Session
@@ -22,8 +18,7 @@ from functools import wraps
 from s2sphere import LatLng
 
 from .auth.auth_factory import AuthFactory
-from .auth.discord_auth import DiscordAuth
-from .blacklist import fingerprints, get_ip_blacklist
+from .blacklist import fingerprints
 from .dyn_img import get_gym_icon, get_pokemon_map_icon, get_pokemon_raw_icon
 from .models import (db, Pokemon, Gym, Pokestop, ScannedLocation, TrsSpawn,
                      Weather)
@@ -35,8 +30,8 @@ from .pogoprotos.enums.pokemon_id_pb2 import PokemonId
 from .pogoprotos.enums.raid_level_pb2 import RaidLevel
 from .pogoprotos.enums.weather_condition_pb2 import WeatherCondition
 from .transform import transform_from_wgs_to_gcj
-from .utils import (dottedQuadToNum, get_args, get_pokemon_name, get_sessions,
-                    i8ln, parse_geofence_file)
+from .utils import (get_args, get_pokemon_name, get_sessions, i18n,
+                    parse_geofence_file)
 
 log = logging.getLogger(__name__)
 args = get_args()
@@ -44,9 +39,6 @@ args = get_args()
 auth_factory = AuthFactory()
 accepted_auth_types = []
 valid_access_configs = []
-
-ip_blacklist = []
-ip_blacklist_keys = []
 
 version = int(time.time())  # Used for cache busting.
 
@@ -66,20 +58,6 @@ class CustomJSONEncoder(JSONEncoder):
         else:
             return list(iterable)
         return JSONEncoder.default(self, obj)
-
-
-def ip_is_blacklisted(ip):
-    if not ip_blacklist:
-        return False
-
-    # Get the nearest IP range
-    pos = max(bisect_left(ip_blacklist_keys, dottedQuadToNum(ip)) - 1, 0)
-    ip_range = ip_blacklist[pos]
-
-    start = dottedQuadToNum(ip_range[0])
-    end = dottedQuadToNum(ip_range[1])
-
-    return start <= dottedQuadToNum(ip) <= end
 
 
 def convert_pokemon_list(pokemon):
@@ -132,9 +110,9 @@ def auth_required(f):
                 return f(*_args, **kwargs)
             a = auth_factory.get_authenticator(auth_type)
             has_permission, redirect_uri, access_config = a.get_access_data()
-            if not has_permission or (access_config is not None and
-                                      access_config not in
-                                      valid_access_configs):
+            if not has_permission or (
+                    access_config is not None
+                    and access_config not in valid_access_configs):
                 session.clear()
             kwargs['has_permission'] = has_permission
             kwargs['redirect_uri'] = redirect_uri
@@ -152,8 +130,6 @@ def create_app():
                 template_folder='../templates',
                 static_folder='../static')
     app.json_encoder = CustomJSONEncoder
-    cache = Cache(app,
-                  config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 0})
     cache_buster = CacheBuster(config={'extensions': ['.js', '.css']})
     cache_buster.init_app(app)
     Compress(app)
@@ -198,28 +174,12 @@ def create_app():
                 if name not in valid_access_configs:
                     valid_access_configs.append(name)
 
-    if not args.disable_blacklist:
-        log.info('Retrieving blacklist...')
-        ip_blacklist = get_ip_blacklist()
-        # Sort & index for binary search
-        ip_blacklist.sort(key=lambda r: r[0])
-        ip_blacklist_keys = [
-            dottedQuadToNum(r[0]) for r in ip_blacklist
-        ]
-    else:
-        log.info('Blacklist disabled for this session.')
-
     @app.before_request
     def validate_request():
         # Get real IP behind trusted reverse proxy.
         ip_addr = request.remote_addr
         if ip_addr in args.trusted_proxies:
             ip_addr = request.headers.get('X-Forwarded-For', ip_addr)
-
-        # Make sure IP isn't blacklisted.
-        if ip_is_blacklisted(ip_addr):
-            log.debug('Denied access to %s: blacklisted IP.', ip_addr)
-            abort(403)
 
         if args.client_auth:
             session['ip'] = ip_addr
@@ -244,6 +204,7 @@ def create_app():
             'spiderfyClusters': user_args.spiderfy_clusters,
             'removeMarkersOutsideViewport': (
                 not user_args.markers_outside_viewport),
+            'autoPanPopup': not user_args.no_autopan_popup,
             'geocoder': not user_args.no_geocoder,
             'isStartMarkerMovable': not user_args.lock_start_marker,
             'generateImages': user_args.generate_images,
@@ -259,27 +220,26 @@ def create_app():
             'upscaledPokemon': (
                 [int(i) for i in user_args.upscaled_pokemon.split(',')]
                 if user_args.upscaled_pokemon is not None else []),
-            'pokemonValues': (not user_args.no_pokemon and
-                              not user_args.no_pokemon_values),
+            'pokemonValues': (not user_args.no_pokemon
+                              and not user_args.no_pokemon_values),
             'catchRates': user_args.catch_rates,
-            'rarity': (not user_args.no_pokemon and user_args.rarity and
-                       user_args.rarity_update_frequency),
+            'rarity': (not user_args.no_pokemon and user_args.rarity
+                       and user_args.rarity_update_frequency),
             'rarityFileName': user_args.rarity_filename,
-            'pokemonCries': (not user_args.no_pokemon and
-                             user_args.pokemon_cries),
+            'pokemonCries': (not user_args.no_pokemon
+                             and user_args.pokemon_cries),
             'gyms': not user_args.no_gyms,
-            'gymSidebar': ((not user_args.no_gyms or
-                            not user_args.no_raids) and
-                           not user_args.no_gym_sidebar),
-            'gymFilters': (not user_args.no_gyms and
-                           not user_args.no_gym_filters),
+            'gymSidebar': ((not user_args.no_gyms or not user_args.no_raids)
+                           and not user_args.no_gym_sidebar),
+            'gymFilters': (not user_args.no_gyms
+                           and not user_args.no_gym_filters),
             'raids': not user_args.no_raids,
-            'raidFilters': (not user_args.no_raids and
-                            not user_args.no_raid_filters),
+            'raidFilters': (not user_args.no_raids
+                            and not user_args.no_raid_filters),
             'pokestops': not user_args.no_pokestops,
             'quests': not user_args.no_pokestops and not user_args.no_quests,
-            'invasions': (not user_args.no_pokestops and
-                          not user_args.no_invasions),
+            'invasions': (not user_args.no_pokestops
+                          and not user_args.no_invasions),
             'lures': not user_args.no_pokestops and not user_args.no_lures,
             'weather': not user_args.no_weather,
             'spawnpoints': not user_args.no_spawnpoints,
@@ -311,13 +271,13 @@ def create_app():
             messenger_url=user_args.messenger_url,
             telegram_url=user_args.telegram_url,
             whatsapp_url=user_args.whatsapp_url,
-            pokemon_history_page=(settings['pokemons'] and
-                                  not user_args.no_pokemon_history_page),
+            pokemon_history_page=(settings['pokemons']
+                                  and not user_args.no_pokemon_history_page),
             quest_page=settings['quests'] and not user_args.no_quest_page,
             analytics_id=user_args.analytics_id,
             kiel=user_args.kiel,
             settings=settings,
-            i18n=i8ln
+            i18n=i18n
         )
 
     @app.route('/pokemon-history')
@@ -366,11 +326,12 @@ def create_app():
             messenger_url=user_args.messenger_url,
             telegram_url=user_args.telegram_url,
             whatsapp_url=user_args.whatsapp_url,
-            quest_page=(not user_args.no_pokestops and
-                        not user_args.no_quests and
-                        not user_args.no_quest_page),
+            quest_page=(not user_args.no_pokestops
+                        and not user_args.no_quests
+                        and not user_args.no_quest_page),
             analytics_id=user_args.analytics_id,
-            settings=settings
+            settings=settings,
+            i18n=i18n
         )
 
     @app.route('/quests')
@@ -381,8 +342,8 @@ def create_app():
 
         user_args = get_args(kwargs['access_config'])
 
-        if (user_args.no_pokestops or user_args.no_quests or
-                user_args.no_quest_page):
+        if (user_args.no_pokestops or user_args.no_quests
+                or user_args.no_quest_page):
             if args.client_auth:
                 if is_logged_in():
                     abort(403)
@@ -418,10 +379,11 @@ def create_app():
             messenger_url=user_args.messenger_url,
             telegram_url=user_args.telegram_url,
             whatsapp_url=user_args.whatsapp_url,
-            pokemon_history_page=(not user_args.no_pokemon and
-                                  not user_args.no_pokemon_history_page),
+            pokemon_history_page=(not user_args.no_pokemon
+                                  and not user_args.no_pokemon_history_page),
             analytics_id=user_args.analytics_id,
-            settings=settings
+            settings=settings,
+            i18n=i18n
         )
 
     @app.route('/mobile')
@@ -486,7 +448,8 @@ def create_app():
             origin_lat=lat,
             origin_lng=lon,
             analytics_id=user_args.analytics_id,
-            settings=settings
+            settings=settings,
+            i18n=i18n
         )
 
     @app.route('/login')
@@ -524,11 +487,12 @@ def create_app():
             basic_auth=args.basic_auth,
             discord_auth=args.discord_auth,
             telegram_auth=args.telegram_auth,
-            pokemon_history_page=(not args.no_pokemon and
-                                  not args.no_pokemon_history_page),
-            quest_page=(not args.no_pokestops and not args.no_quests and
-                        not args.no_quest_page),
-            settings=settings
+            pokemon_history_page=(not args.no_pokemon
+                                  and not args.no_pokemon_history_page),
+            quest_page=(not args.no_pokestops and not args.no_quests
+                        and not args.no_quest_page),
+            settings=settings,
+            i18n=i18n
         )
 
     @app.route('/login/<auth_type>')
@@ -575,12 +539,13 @@ def create_app():
             messenger_url=args.messenger_url,
             telegram_url=args.telegram_url,
             whatsapp_url=args.whatsapp_url,
-            pokemon_history_page=(not args.no_pokemon and
-                                  not args.no_pokemon_history_page),
-            quest_page=(not args.no_pokestops and not args.no_quests and
-                        not args.no_quest_page),
+            pokemon_history_page=(not args.no_pokemon
+                                  and not args.no_pokemon_history_page),
+            quest_page=(not args.no_pokestops and not args.no_quests
+                        and not args.no_quest_page),
             analytics_id=args.analytics_id,
-            settings=settings
+            settings=settings,
+            i18n=i18n
         )
 
     @app.route('/login/telegram')
@@ -611,14 +576,15 @@ def create_app():
             messenger_url=args.messenger_url,
             telegram_url=args.telegram_url,
             whatsapp_url=args.whatsapp_url,
-            pokemon_history_page=(not args.no_pokemon and
-                                  not args.no_pokemon_history_page),
-            quest_page=(not args.no_pokestops and not args.no_quests and
-                        not args.no_quest_page),
+            pokemon_history_page=(not args.no_pokemon
+                                  and not args.no_pokemon_history_page),
+            quest_page=(not args.no_pokestops and not args.no_quests
+                        and not args.no_quest_page),
             analytics_id=args.analytics_id,
             telegram_bot_username=args.telegram_bot_username,
             server_uri=args.server_uri,
-            settings=settings
+            settings=settings,
+            i18n=i18n
         )
 
     @app.route('/auth/<auth_type>')
@@ -645,9 +611,9 @@ def create_app():
             r = app.config['SESSION_REDIS']
             sessions = get_sessions(r)
             for s in sessions:
-                if ('auth_type' in s and
-                        s['auth_type'] == session['auth_type'] and
-                        s['id'] == session['id']):
+                if ('auth_type' in s
+                        and s['auth_type'] == session['auth_type']
+                        and s['id'] == session['id']):
                     r.delete('session:' + s['session_id'])
 
         return redirect(url_for('map_page'))
@@ -708,12 +674,13 @@ def create_app():
             telegram_url=user_args.telegram_url,
             whatsapp_url=user_args.whatsapp_url,
             analytics_id=user_args.analytics_id,
-            pokemon_history_page=(not user_args.no_pokemon and
-                                  not user_args.no_pokemon_history_page),
-            quest_page=(not user_args.no_pokestops and
-                        not user_args.no_quests and
-                        not user_args.no_quest_page),
-            settings=settings
+            pokemon_history_page=(not user_args.no_pokemon
+                                  and not user_args.no_pokemon_history_page),
+            quest_page=(not user_args.no_pokestops
+                        and not user_args.no_quests
+                        and not user_args.no_quest_page),
+            settings=settings,
+            i18n=i18n
         )
 
     @app.route('/raw-data')
@@ -726,8 +693,7 @@ def create_app():
 
         # Make sure fingerprint isn't blacklisted.
         fingerprint_blacklisted = any([
-            fingerprints['no_referrer'](request),
-            fingerprints['iPokeGo'](request)
+            fingerprints['no_referrer'](request)
         ])
 
         if fingerprint_blacklisted:
@@ -762,40 +728,40 @@ def create_app():
         d['oNeLat'] = neLat
         d['oNeLng'] = neLng
 
-        if (oSwLat is not None and oSwLng is not None and
-                oNeLat is not None and oNeLng is not None):
+        if (oSwLat is not None and oSwLng is not None
+                and oNeLat is not None and oNeLng is not None):
             # If old coords are not equal to current coords we have
             # moved/zoomed!
-            if (oSwLng < swLng and oSwLat < swLat and
-                    oNeLat > neLat and oNeLng > neLng):
+            if (oSwLng < swLng and oSwLat < swLat
+                    and oNeLat > neLat and oNeLng > neLng):
                 new_area = False  # We zoomed in no new area uncovered.
-            elif not (oSwLat == swLat and oSwLng == swLng and
-                      oNeLat == neLat and oNeLng == neLng):
+            elif not (oSwLat == swLat and oSwLng == swLng
+                      and oNeLat == neLat and oNeLng == neLng):
                 new_area = True
             else:
                 new_area = False
 
-        pokemon = (request.args.get('pokemon') == 'true' and
-                   not user_args.no_pokemon)
+        pokemon = (request.args.get('pokemon') == 'true'
+                   and not user_args.no_pokemon)
         seen = request.args.get('seen') == 'true'
         appearances = request.args.get('appearances') == 'true'
         appearances_details = request.args.get('appearancesDetails') == 'true'
         gyms = request.args.get('gyms') == 'true' and not user_args.no_gyms
         raids = request.args.get('raids') == 'true' and not user_args.no_raids
-        pokestops = (request.args.get('pokestops') == 'true' and
-                     not user_args.no_pokestops)
+        pokestops = (request.args.get('pokestops') == 'true'
+                     and not user_args.no_pokestops)
         eventless_pokestops = request.args.get('eventlessPokestops') == 'true'
-        quests = (request.args.get('quests') == 'true' and
-                  not user_args.no_quests)
-        invasions = (request.args.get('invasions') == 'true' and
-                     not user_args.no_invasions)
+        quests = (request.args.get('quests') == 'true'
+                  and not user_args.no_quests)
+        invasions = (request.args.get('invasions') == 'true'
+                     and not user_args.no_invasions)
         lures = request.args.get('lures') == 'true' and not user_args.no_lures
-        weather = (request.args.get('weather') == 'true' and
-                   not user_args.no_weather)
-        spawnpoints = (request.args.get('spawnpoints') == 'true' and
-                       not user_args.no_spawnpoints)
-        scanned_locs = (request.args.get('scannedLocs') == 'true' and
-                        not user_args.no_scanned_locs)
+        weather = (request.args.get('weather') == 'true'
+                   and not user_args.no_weather)
+        spawnpoints = (request.args.get('spawnpoints') == 'true'
+                       and not user_args.no_spawnpoints)
+        scanned_locs = (request.args.get('scannedLocs') == 'true'
+                        and not user_args.no_scanned_locs)
 
         all_pokemon = request.args.get('allPokemon') == 'true'
         all_gyms = request.args.get('allGyms') == 'true'
@@ -830,8 +796,8 @@ def create_app():
             verified_despawn = user_args.verified_despawn_time
             eids = None
             ids = None
-            if (request.args.get('eids') and
-                    request.args.get('prionotif', 'false') == 'false'):
+            if (request.args.get('eids')
+                    and request.args.get('prionotif', 'false') == 'false'):
                 request_eids = request.args.get('eids').split(',')
                 eids = [int(i) for i in request_eids]
             elif not request.args.get('eids') and request.args.get('ids'):
@@ -1011,16 +977,6 @@ def create_app():
         if not args.client_auth:
             abort(404)
 
-        # Make sure fingerprint isn't blacklisted.
-        fingerprint_blacklisted = any([
-            fingerprints['no_referrer'](request),
-            fingerprints['iPokeGo'](request)
-        ])
-
-        if fingerprint_blacklisted:
-            log.debug('User denied access: blacklisted fingerprint.')
-            abort(403)
-
         if not is_admin():
             abort(403)
 
@@ -1052,7 +1008,7 @@ def create_app():
             Costume.Name(costume)
             PokemonEvolution.Name(evolution)
             WeatherCondition.Name(weather)
-        except:
+        except Exception:
             abort(400)
 
         if raw:
@@ -1086,7 +1042,7 @@ def create_app():
             PokemonEvolution.Name(evolution)
             if level < 0 or level > 6 or (pkm > 0 and raid_level == 0):
                 raise ValueError()
-        except:
+        except Exception:
             abort(400)
 
         return send_file(

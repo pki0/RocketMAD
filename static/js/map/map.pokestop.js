@@ -1,3 +1,13 @@
+/*
+globals $pokestopNameFilter, addListeners, autoPanPopup, getTimeUntil,
+invadedPokestopIds, lpad, luredPokestopIds, lureTypes, mapData, markers,
+markersNoCluster, notifiedPokestopData, pokestopInvasionZIndex,
+pokestopLureZIndex, pokestopNotifiedZIndex, pokestopQuestZIndex,
+pokestopZIndex, removeMarker, removeRangeCircle, sendNotification, settings,
+setupRangeCircle, updateLabelDiffTime, updateRangeCircle
+*/
+/* exported processPokestop */
+
 function isPokestopMeetsQuestFilters(pokestop) {
     if (!settings.showQuests || !pokestop.quest) {
         return false
@@ -6,18 +16,18 @@ function isPokestopMeetsQuestFilters(pokestop) {
     if (settings.filterQuests) {
         switch (pokestop.quest.reward_type) {
             case 2: {
-                let id = pokestop.quest.item_id + '_' + pokestop.quest.item_amount
+                const id = pokestop.quest.item_id + '_' + pokestop.quest.item_amount
                 return !settings.excludedQuestItems.includes(id)
             }
             case 3: {
-                let id = '6_' + pokestop.quest.stardust
+                const id = '6_' + pokestop.quest.stardust
                 return !settings.excludedQuestItems.includes(id)
             }
             case 7: {
                 return !settings.excludedQuestPokemon.has(pokestop.quest.pokemon_id)
             }
             case 12: {
-                let id = '7_' + pokestop.quest.item_amount
+                const id = '7_' + pokestop.quest.item_amount
                 return !settings.excludedQuestItems.includes(id)
             }
         }
@@ -83,7 +93,7 @@ function setupPokestopMarker(pokestop, isNotifPokestop) {
 
     marker.pokestop_id = pokestop.pokestop_id
     updatePokestopMarker(pokestop, marker, isNotifPokestop)
-    marker.bindPopup()
+    marker.bindPopup('', { autoPan: autoPanPopup() })
     addListeners(marker, 'pokestop')
 
     return marker
@@ -108,7 +118,7 @@ function updatePokestopMarker(pokestop, marker, isNotifPokestop) {
                 shadowSize = [30, 30]
                 break
             case 7:
-                shadowImage = getPokemonMapIconUrl({pokemon_id: quest.pokemon_id, form: quest.form_id, costume: quest.costume_id})
+                shadowImage = getPokemonMapIconUrl({ pokemon_id: quest.pokemon_id, form: quest.form_id, costume: quest.costume_id }, serverSettings.generateImages)
                 shadowSize = [35, 35]
                 break
             case 12:
@@ -117,7 +127,7 @@ function updatePokestopMarker(pokestop, marker, isNotifPokestop) {
         }
     }
 
-    var icon = L.icon({ // eslint-disable-line new-cap
+    var icon = L.icon({
         iconUrl: getPokestopIconUrlFiltered(pokestop),
         iconSize: [32 * upscaleModifier, 32 * upscaleModifier],
         iconAnchor: [16 * upscaleModifier, 32 * upscaleModifier],
@@ -159,14 +169,14 @@ function updatePokestopMarker(pokestop, marker, isNotifPokestop) {
     return marker
 }
 
-function toggleInvasionPokemon() {
+function toggleInvasionPokemon() { // eslint-disable-line no-unused-vars
     settings.showInvasionPokemon = !settings.showInvasionPokemon
     updatePokestops()
     Store.set('showInvasionPokemon', settings.showInvasionPokemon)
 }
 
 function pokestopLabel(pokestop) {
-    const pokestopName = pokestop.name != null && pokestop.name != '' ? pokestop.name : 'PokéStop'
+    const pokestopName = pokestop.name != null && pokestop.name !== '' ? pokestop.name : 'PokéStop'
     var imageUrl = ''
     var imageClass = ''
     var imageOnclick = ''
@@ -175,7 +185,7 @@ function pokestopLabel(pokestop) {
     var invasionDisplay = ''
     var questDisplay = ''
 
-    if (pokestop.image != null && pokestop.image != '') {
+    if (pokestop.image != null && pokestop.image !== '') {
         imageUrl = pokestop.image.replace(/^http:\/\//i, '//')
         imageOnclick = `onclick='showImageModal("${imageUrl}", "${pokestopName.replace(/"/g, '\\&quot;').replace(/'/g, '\\&#39;')}")'`
         imageClass = 'pokestop-image'
@@ -209,11 +219,11 @@ function pokestopLabel(pokestop) {
                 isNotifQuest = settings.notifQuestItems.includes('6_' + quest.stardust)
                 break
             case 7:
-                rewardImageUrl = getPokemonRawIconUrl({pokemon_id: quest.pokemon_id, form: quest.form_id, costume: quest.costume_id})
+                rewardImageUrl = getPokemonRawIconUrl({ pokemon_id: quest.pokemon_id, form: quest.form_id, costume: quest.costume_id }, serverSettings.generateImages)
                 rewardText = `${getPokemonNameWithForm(quest.pokemon_id, quest.form_id)} #${quest.pokemon_id}`
                 excludeFunction = `excludeQuestPokemon(${quest.pokemon_id})`
                 notifFunction = `toggleQuestPokemonNotif(${quest.pokemon_id})`
-                infoButtonDisplay = `<a href='https://pokemongo.gamepress.gg/pokemon/${quest.pokemon_id}' class='link-button' target='_blank' title='View on GamePress'><i class="fas fa-info-circle"></i></a>`
+                infoButtonDisplay = `<a href='https://pokemongo.gamepress.gg/pokemon/${quest.pokemon_id}' class='link-button' target='_blank' title='${i18n('View on GamePress')}'><i class="fas fa-info-circle"></i></a>`
                 isNotifQuest = settings.notifQuestPokemon.has(quest.pokemon_id)
                 break
             case 12:
@@ -224,7 +234,7 @@ function pokestopLabel(pokestop) {
                 isNotifQuest = settings.notifQuestItems.includes('7_' + quest.item_amount)
         }
 
-        const notifText = isNotifQuest ? 'Don\'t notify' : 'Notify'
+        const notifText = isNotifQuest ? i18n('Don\'t notify') : i18n('Notify')
         const notifIconClass = isNotifQuest ? 'fas fa-bell-slash' : 'fas fa-bell'
 
         questDisplay = `
@@ -237,22 +247,22 @@ function pokestopLabel(pokestop) {
               </div>
               <div class='pokestop-container-right'>
                 <div class='title'>
-                  Quest
+                  ${i18n('Quest')}
                 </div>
                 <div class='info-container'>
                   <div>
-                    ${i8ln('Task')}: <strong>${quest.task}</strong>
+                    ${i18n('Task')}: <strong>${quest.task}</strong>
                   </div>
                   <div>
-                    ${i8ln('Reward')}: <strong>${rewardText}</strong>
+                    ${i18n('Reward')}: <strong>${rewardText}</strong>
                   </div>
                   <div>
-                    ${i8ln('Scanned')}: <strong>${timestampToDateTime(quest.scanned_at)}</strong>
+                    ${i18n('Scanned')}: <strong>${timestampToDateTime(quest.scanned_at)}</strong>
                   </div>
                 </div>
                 <div>
                   <a href='javascript:${notifFunction}' class='link-button' title="${notifText}"><i class="${notifIconClass}"></i></a>
-                  <a href='javascript:${excludeFunction}' class='link-button' title='Hide'><i class="fas fa-eye-slash"></i></a>
+                  <a href='javascript:${excludeFunction}' class='link-button' title=${i18n('Hide')}><i class="fas fa-eye-slash"></i></a>
                   ${infoButtonDisplay}
                 </div>
               </div>
@@ -266,7 +276,7 @@ function pokestopLabel(pokestop) {
         const invasionType = getInvasionType(invasionId)
         const pokemon = getInvasionPokemon(invasionId)
         const isNotifInvasion = settings.notifInvasions.includes(invasionId)
-        const notifText = isNotifInvasion ? 'Don\'t notify' : 'Notify'
+        const notifText = isNotifInvasion ? i18n('Don\'t notify') : i18n('Notify')
         const notifIconClass = isNotifInvasion ? 'fas fa-bell-slash' : 'fas fa-bell'
         let typeDisplay = ''
         let pokemonDisplay = ''
@@ -279,19 +289,19 @@ function pokestopLabel(pokestop) {
         }
 
         if (pokemon) {
-            const ballDisplay = `<img class='invasion-image' src='${getItemImageUrl(5)}' width='18'/>`
+            const ballDisplay = `<img src='${getItemImageUrl(5)}' width='18' height='18'/>`
             if (settings.showInvasionPokemon) {
-                pokemonDisplay = `<div class='invasion-pokemon-toggle' onclick='toggleInvasionPokemon()'>Hide Pokémon <i class='fas fa-chevron-up'></i></div><div class='invasion-pokemon-container'>`
+                pokemonDisplay = `<div class="invasion-pokemon-toggle" onclick="toggleInvasionPokemon()">${i18n('Hide Pokémon')} <i class="fas fa-chevron-up"></i></div><div class="invasion-pokemon-container">`
             } else {
-                pokemonDisplay = `<div class='invasion-pokemon-toggle' onclick='toggleInvasionPokemon()'>Show Pokémon <i class='fas fa-chevron-down'></i></div><div class='invasion-pokemon-container' style='display:none;'>`
+                pokemonDisplay = `<div class="invasion-pokemon-toggle" onclick="toggleInvasionPokemon()">${i18n('Show Pokémon')} <i class="fas fa-chevron-down"></i></div><div class="invasion-pokemon-container" style="display:none;">`
             }
 
             for (let i = 1; i < 4; i++) {
-                const header = pokemon[i.toString()]['isReward'] ? `<div class='invasion-pokemon-ball-header'>#${i.toString() + ballDisplay}</div>` : `<div>#${i.toString()}</div>`
-                pokemonDisplay += `<div class='invasion-pokemon-column'>` + header
-                for (let j = 0; j < pokemon[i.toString()]['ids'].length; j++) {
-                  const id = pokemon[i.toString()]['ids'][j]
-                  pokemonDisplay += `<div><img title='${getPokemonName(id)}' src='${getPokemonRawIconUrl({pokemon_id: id})}' width='48'/></div>`
+                const header = pokemon[i.toString()].isReward ? `<div class='invasion-pokemon-ball-header'>#${i.toString() + ballDisplay}</div>` : `<div>#${i.toString()}</div>`
+                pokemonDisplay += '<div class="invasion-pokemon-column">' + header
+                for (let j = 0; j < pokemon[i.toString()].ids.length; j++) {
+                    const id = pokemon[i.toString()].ids[j]
+                    pokemonDisplay += `<div><img title='${getPokemonName(id)}' src='${getPokemonRawIconUrl({ pokemon_id: id }, serverSettings.generateImages)}' width='48'/></div>`
                 }
                 pokemonDisplay += '</div>'
             }
@@ -310,7 +320,7 @@ function pokestopLabel(pokestop) {
               <div class='pokestop-container-right'>
                 <div class='title invasion'>
                   <div>
-                    Team GO Rocket Invasion
+                    ${i18n('Team GO Rocket Invasion')}
                   </div>
                 </div>
                 <div class='disappear'>
@@ -319,13 +329,13 @@ function pokestopLabel(pokestop) {
                 <div class='info-container'>
                   ${typeDisplay}
                   <div>
-                    ${i8ln('Grunt')}: <strong>${grunt}</strong>
+                    ${i18n('Grunt')}: <strong>${grunt}</strong>
                   </div>
                   ${pokemonDisplay}
                 </div>
                 <div>
                   <a href='javascript:toggleInvasionNotif(${invasionId})' class='link-button' title="${notifText}"><i class="${notifIconClass}"></i></a>
-                  <a href='javascript:excludeInvasion(${invasionId})' class='link-button' title='Hide'><i class="fas fa-eye-slash"></i></a>
+                  <a href='javascript:excludeInvasion(${invasionId})' class='link-button' title=${i18n('Hide')}><i class="fas fa-eye-slash"></i></a>
                 </div>
               </div>
             </div>`
@@ -337,7 +347,7 @@ function pokestopLabel(pokestop) {
         lureDisplay = `
             <div class='lure-container ${lureClass}'>
               <div class='title'>
-                ${i8ln(lureTypes[pokestop.active_fort_modifier] + ' Lure')}
+                ${i18n(lureTypes[pokestop.active_fort_modifier] + ' Lure')}
               </div>
               <div class='disappear'>
                 ${timestampToTime(lureExpireTime)} (<span class='label-countdown' disappears-at='${lureExpireTime}'>00m00s</span>)
@@ -361,10 +371,10 @@ function pokestopLabel(pokestop) {
               </div>
               ${lureDisplay}
               <div>
-                ${i8ln('Last scanned')}: <strong>${timestampToDateTime(pokestop.last_updated)}</strong>
+                ${i18n('Last scanned')}: <strong>${timestampToDateTime(pokestop.last_updated)}</strong>
               </div>
               <div>
-                <a href='javascript:void(0);' onclick='javascript:openMapDirections(${pokestop.latitude},${pokestop.longitude},"${settings.mapServiceProvider}");' title='Open in ${mapServiceProviderNames[settings.mapServiceProvider]}'><i class="fas fa-map-marked-alt"></i> ${pokestop.latitude.toFixed(5)}, ${pokestop.longitude.toFixed(5)}</a>
+                <a href='javascript:void(0);' onclick='javascript:openMapDirections(${pokestop.latitude},${pokestop.longitude},"${settings.mapServiceProvider}");' title='${i18n('Open in')} ${mapServiceProviderNames[settings.mapServiceProvider]}'><i class="fas fa-map-marked-alt"></i> ${pokestop.latitude.toFixed(5)}, ${pokestop.longitude.toFixed(5)}</a>
               </div>
             </div>
           </div>
@@ -389,12 +399,12 @@ function processPokestop(pokestop) {
     }
 
     const id = pokestop.pokestop_id
-    if (!mapData.pokestops.hasOwnProperty(id)) {
+    if (!(id in mapData.pokestops)) {
         if (!isPokestopMeetsFilters(pokestop)) {
             return true
         }
 
-        const {questNotif, invasionNotif, lureNotif, newNotif} = getPokestopNotificationInfo(pokestop)
+        const { questNotif, invasionNotif, lureNotif, newNotif } = getPokestopNotificationInfo(pokestop)
         const isNotifPokestop = questNotif || invasionNotif || lureNotif
         if (newNotif) {
             sendPokestopNotification(pokestop, questNotif, invasionNotif, lureNotif)
@@ -421,7 +431,7 @@ function processPokestop(pokestop) {
 }
 
 function updatePokestop(id, pokestop = null) {
-    if (id == null || !mapData.pokestops.hasOwnProperty(id)) {
+    if (id == null || !(id in mapData.pokestops)) {
         return true
     }
 
@@ -441,7 +451,7 @@ function updatePokestop(id, pokestop = null) {
         const newLure = !isLuredPokestop(oldPokestop) && isLuredPokestop(pokestop)
         const questChange = JSON.stringify(oldPokestop.quest) !== JSON.stringify(pokestop.quest)
         if (newInvasion || newLure || questChange) {
-            const {questNotif, invasionNotif, lureNotif, newNotif} = getPokestopNotificationInfo(pokestop)
+            const { questNotif, invasionNotif, lureNotif, newNotif } = getPokestopNotificationInfo(pokestop)
             const isNotifPokestop = questNotif || invasionNotif || lureNotif
             if (newNotif) {
                 sendPokestopNotification(pokestop, questNotif, invasionNotif, lureNotif)
@@ -473,7 +483,7 @@ function updatePokestop(id, pokestop = null) {
             luredPokestopIds.add(id)
         }
     } else {
-        const {questNotif, invasionNotif, lureNotif, newNotif} = getPokestopNotificationInfo(pokestop)
+        const { questNotif, invasionNotif, lureNotif, newNotif } = getPokestopNotificationInfo(pokestop)
         const isNotifPokestop = questNotif || invasionNotif || lureNotif
         if (newNotif) {
             sendPokestopNotification(pokestop, questNotif, invasionNotif, lureNotif)
@@ -504,7 +514,7 @@ function updatePokestops() {
 
 function removePokestop(pokestop) {
     const id = pokestop.pokestop_id
-    if (mapData.pokestops.hasOwnProperty(id)) {
+    if (id in mapData.pokestops) {
         if (mapData.pokestops[id].rangeCircle) {
             removeRangeCircle(mapData.pokestops[id].rangeCircle)
         }
@@ -520,33 +530,33 @@ function removePokestop(pokestop) {
     }
 }
 
-function excludeQuestPokemon(id) {
+function excludeQuestPokemon(id) { // eslint-disable-line no-unused-vars
     if (!settings.excludedQuestPokemon.has(id)) {
         $('label[for="exclude-quest-pokemon"] .pokemon-filter-list .filter-button[data-id="' + id + '"]').click()
     }
 }
 
-function excludeQuestItem(id, bundle) {
+function excludeQuestItem(id, bundle) { // eslint-disable-line no-unused-vars
     if (!settings.excludedQuestItems.includes(id + '_' + bundle)) {
         $('label[for="exclude-quest-items"] .quest-item-filter-list .filter-button[data-id="' + id + '"][data-bundle="' + bundle + '"]').click()
     }
 }
 
-function excludeInvasion(id) {
-    if (!settings.excludedInvasions.includes(id)) {
+function excludeInvasion(id) { // eslint-disable-line no-unused-vars
+    if (!settings.excludedInvasions.includes(id)) { // eslint-disable-line no-unused-vars
         $('label[for="exclude-invasions"] .invasion-filter-list .filter-button[data-id="' + id + '"]').click()
     }
 }
 
-function toggleQuestPokemonNotif(id) {
+function toggleQuestPokemonNotif(id) { // eslint-disable-line no-unused-vars
     $('label[for="no-notif-quest-pokemon"] .pokemon-filter-list .filter-button[data-id="' + id + '"]').click()
 }
 
-function toggleQuestItemNotif(id, bundle) {
+function toggleQuestItemNotif(id, bundle) { // eslint-disable-line no-unused-vars
     $('label[for="no-notif-quest-items"] .quest-item-filter-list .filter-button[data-id="' + id + '"][data-bundle="' + bundle + '"]').click()
 }
 
-function toggleInvasionNotif(id) {
+function toggleInvasionNotif(id) { // eslint-disable-line no-unused-vars
     $('label[for="no-notif-invasions"] .invasion-filter-list .filter-button[data-id="' + id + '"]').click()
 }
 
@@ -575,14 +585,14 @@ function getPokestopNotificationInfo(pokestop) {
         if (settings.questNotifs && isPokestopMeetsQuestFilters(pokestop)) {
             switch (pokestop.quest.reward_type) {
                 case 2: {
-                    let itemId = pokestop.quest.item_id + '_' + pokestop.quest.item_amount
+                    const itemId = pokestop.quest.item_id + '_' + pokestop.quest.item_amount
                     if (settings.notifQuestItems.includes(itemId)) {
                         questNotif = true
                     }
                     break
                 }
                 case 3: {
-                    let itemId = '6_' + pokestop.quest.stardust
+                    const itemId = '6_' + pokestop.quest.stardust
                     if (settings.notifQuestItems.includes(itemId)) {
                         questNotif = true
                     }
@@ -595,7 +605,7 @@ function getPokestopNotificationInfo(pokestop) {
                     break
                 }
                 case 12: {
-                    let itemId = '7_' + pokestop.quest.item_amount
+                    const itemId = '7_' + pokestop.quest.item_amount
                     if (settings.notifQuestItems.includes(itemId)) {
                         questNotif = true
                     }
@@ -614,17 +624,17 @@ function getPokestopNotificationInfo(pokestop) {
             }
         }
 
-        newNotif = !notifiedPokestopData.hasOwnProperty(id) ||
+        newNotif = !(id in notifiedPokestopData) ||
             (questNotif && (!notifiedPokestopData[id].questNotif || pokestop.quest.scanned_at > notifiedPokestopData[id].questScannedAt)) ||
             (invasionNotif && (!notifiedPokestopData[id].invasionNotif || pokestop.incident_expiration > notifiedPokestopData[id].invasionEnd)) ||
             (lureNotif && (!notifiedPokestopData[id].lureNotif || pokestop.lure_expiration > notifiedPokestopData[id].lureEnd))
     }
 
     return {
-        'questNotif': questNotif,
-        'invasionNotif': invasionNotif,
-        'lureNotif': lureNotif,
-        'newNotif': newNotif
+        questNotif: questNotif,
+        invasionNotif: invasionNotif,
+        lureNotif: lureNotif,
+        newNotif: newNotif
     }
 }
 
@@ -634,58 +644,58 @@ function sendPokestopNotification(pokestop, questNotif, invasionNotif, lureNotif
     }
 
     if (settings.playSound) {
-        audio.play()
+        ding.play()
     }
 
     if (settings.showBrowserPopups) {
         const pokestopName = pokestop.name !== null && pokestop.name !== '' ? pokestop.name : 'unknown'
         let notifTitle = ''
-        let notifText = 'PokéStop: ' + pokestopName
+        let notifText = i18n('PokéStop') + ': ' + pokestopName
         if (questNotif) {
             switch (pokestop.quest.reward_type) {
                 case 2:
-                    notifTitle += `${pokestop.quest.item_amount} ${getItemName(pokestop.quest.item_id)}(s) Quest`
+                    notifTitle += `${i18n('Quest')}: ${pokestop.quest.item_amount} ${getItemName(pokestop.quest.item_id)}(s)`
                     break
                 case 3:
-                    notifTitle += `${pokestop.quest.stardust} ${getItemName(6)} Quest`
+                    notifTitle += `${i18n('Quest')}: ${pokestop.quest.stardust} ${getItemName(6)}`
                     break
                 case 7:
-                    notifTitle += `${getPokemonNameWithForm(pokestop.quest.pokemon_id, pokestop.quest.form_id)} Quest`
+                    notifTitle += `${i18n('Quest')}: ${getPokemonNameWithForm(pokestop.quest.pokemon_id, pokestop.quest.form_id)}`
                     break
                 case 12:
-                    notifTitle += `${pokestop.quest.item_amount} ${getPokemonName(pokestop.quest.pokemon_id)} ${getItemName(7)} Quest`
+                    notifTitle += `${i18n('Quest')}: ${pokestop.quest.item_amount} ${getPokemonName(pokestop.quest.pokemon_id)} ${getItemName(7)}`
             }
-            notifText += `\nQuest task: ${pokestop.quest.task}`
+            notifText += `\n${i18n('Quest task')}: ${pokestop.quest.task}`
         }
         if (invasionNotif) {
-            let expireTime = timestampToTime(pokestop.incident_expiration)
-            let timeUntil = getTimeUntil(pokestop.incident_expiration)
+            const expireTime = timestampToTime(pokestop.incident_expiration)
+            const timeUntil = getTimeUntil(pokestop.incident_expiration)
             let expireTimeCountdown = timeUntil.hour > 0 ? timeUntil.hour + 'h' : ''
             expireTimeCountdown += `${lpad(timeUntil.min, 2, 0)}m${lpad(timeUntil.sec, 2, 0)}s`
 
             if (questNotif) {
                 notifTitle += ' & '
             }
-            notifTitle += `${getInvasionType(pokestop.incident_grunt_type)} (${getInvasionGrunt(pokestop.incident_grunt_type)}) Invasion`
-            notifText += `\nInvasion ends at ${expireTime} (${expireTimeCountdown})`
+            notifTitle += `${i18n('Invasion')}: ${getInvasionType(pokestop.incident_grunt_type)} (${getInvasionGrunt(pokestop.incident_grunt_type)})`
+            notifText += `\n${i18n('Invasion ends at')} ${expireTime} (${expireTimeCountdown})`
         }
         if (lureNotif) {
-            let expireTime = timestampToTime(pokestop.lure_expiration)
-            let timeUntil = getTimeUntil(pokestop.lure_expiration)
+            const expireTime = timestampToTime(pokestop.lure_expiration)
+            const timeUntil = getTimeUntil(pokestop.lure_expiration)
             let expireTimeCountdown = timeUntil.hour > 0 ? timeUntil.hour + 'h' : ''
             expireTimeCountdown += `${lpad(timeUntil.min, 2, 0)}m${lpad(timeUntil.sec, 2, 0)}s`
 
             if (questNotif || invasionNotif) {
                 notifTitle += ' & '
             }
-            notifTitle += `${lureTypes[pokestop.active_fort_modifier]} Lure`
-            notifText += `\nLure ends at ${expireTime} (${expireTimeCountdown})`
+            notifTitle += i18n(lureTypes[pokestop.active_fort_modifier] + ' Lure')
+            notifText += `\n${i18n('Lure ends at')} ${expireTime} (${expireTimeCountdown})`
         }
 
         sendNotification(notifTitle, notifText, getPokestopIconUrlFiltered(pokestop), pokestop.latitude, pokestop.longitude)
     }
 
-    let notificationData = {}
+    const notificationData = {}
     if (questNotif) {
         notificationData.questNotif = true
         notificationData.questScannedAt = pokestop.quest.scanned_at

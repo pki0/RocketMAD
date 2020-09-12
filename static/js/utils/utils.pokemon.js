@@ -1,11 +1,21 @@
+/*
+exported genderClasses, getIvsPercentage, getIvsPercentageCssColor,
+getMoveName, getMoveType, getMoveTypeNoI8ln, getPokemonGen, getPokemonIds,
+getPokemonLevel, getPokemonNameWithForm, getPokemonRarity,
+getPokemonRarityName, getPokemonRawIconUrl, getPokemonTypes, initMoveData,
+initPokemonData, searchPokemon, setupPokemonMarker, updatePokemonRarities
+*/
+
 var pokemonData = {}
 var moveData = {}
 var pokemonRarities = {}
 const rarityNames = ['Common', 'Uncommon', 'Rare', 'Very Rare', 'Ultra Rare', 'New Spawn']
+// FontAwesome gender classes.
+const genderClasses = ['fa-mars', 'fa-venus', 'fa-neuter']
 var pokemonSearchList = []
 const availablePokemonCount = 649
-let pokemonIds = new Set()
 const shiny_list = [1, 4, 7, 10, 16, 19, 23, 25, 27, 41, 43, 48, 50, 52, 54, 56, 58, 60, 63, 66, 72, 74, 77, 81, 86, 88, 90, 92, 95, 96, 98, 100, 102, 104, 108, 109, 111, 113, 115, 116, 123, 126, 127, 128, 129, 131, 133, 138, 140, 142, 147, 152, 155, 158, 161, 170, 177, 179, 183, 185, 190, 191, 193, 198, 200, 202, 204, 206, 207, 209, 213, 215, 216, 220, 225, 227, 228, 234, 246, 252, 255, 258, 261, 263, 265, 270, 273, 276, 278, 280, 287, 290, 296, 300, 302, 303, 304, 307, 309, 311, 312, 313, 314, 315, 318, 320, 325, 328, 333, 335, 336, 337, 338, 339, 343, 345, 347, 349, 351, 353, 355, 359, 361, 366, 370, 371, 374, 387, 390, 393, 403, 412, 425, 427, 431, 436, 443, 449, 451, 453, 459, 504, 506, 532, 562, 572, 599]
+const pokemonIds = new Set()
 
 function initPokemonData() {
     if (!$.isEmptyObject(pokemonData)) {
@@ -14,7 +24,7 @@ function initPokemonData() {
 
     return $.getJSON('static/dist/data/pokemon.min.json?v=' + version).done(function (data) {
         pokemonData = data
-        $.each(pokemonData, function(id, value) {
+        $.each(pokemonData, function (id, value) {
             var gen
             if (id <= 151) {
                 gen = 1
@@ -34,9 +44,9 @@ function initPokemonData() {
             pokemonData[id].gen = gen
             pokemonSearchList.push({
                 id: parseInt(id),
-                name: i8ln(value.name),
-                type1: i8ln(value.types[0].type),
-                type2: value.types[1] ? i8ln(value.types[1].type) : '',
+                name: i18n(value.name),
+                type1: i18n(value.types[0].type),
+                type2: value.types[1] ? i18n(value.types[1].type) : '',
                 gen: 'gen' + gen
             })
         })
@@ -58,7 +68,7 @@ function initMoveData() {
 }
 
 function updatePokemonRarities(rarityFileName) {
-    return $.getJSON('static/dist/data/' + rarityFileName + '.json', {_: new Date().getTime()}).done(function (data) {
+    return $.getJSON('static/dist/data/rarity/' + rarityFileName + '.min.json', { _: new Date().getTime() }).done(function (data) {
         pokemonRarities = data
     }).fail(function () {
         console.log("Couldn't load dynamic rarity JSON.")
@@ -81,20 +91,20 @@ function getPokemonIds() {
 }
 
 function getPokemonName(id, evolutionId = 0) {
-    switch(evolutionId) {
+    switch (evolutionId) {
         case 1:
-            return 'Mega ' + i8ln(pokemonData[id].name)
+            return i18n('Mega') + ' ' + i18n(pokemonData[id].name)
         case 2:
-            return 'Mega ' + i8ln(pokemonData[id].name) + ' X'
+            return i18n('Mega') + ' ' + i18n(pokemonData[id].name) + ' X'
         case 3:
-            return 'Mega ' + i8ln(pokemonData[id].name) + ' Y'
+            return i18n('Mega') + ' ' + i18n(pokemonData[id].name) + ' Y'
         default:
-            return i8ln(pokemonData[id].name)
+            return i18n(pokemonData[id].name)
     }
 }
 
 function getPokemonTypes(pokemonId, formId) {
-    return i8ln(getPokemonTypesNoI8ln(pokemonId, formId))
+    return i18n(getPokemonTypesNoI8ln(pokemonId, formId))
 }
 
 function getPokemonTypesNoI8ln(pokemonId, formId) {
@@ -106,7 +116,7 @@ function getPokemonTypesNoI8ln(pokemonId, formId) {
 }
 
 function getFormName(pokemonId, formId) {
-    return 'forms' in pokemonData[pokemonId] && formId in pokemonData[pokemonId].forms ? i8ln(pokemonData[pokemonId].forms[formId].formName) : ''
+    return 'forms' in pokemonData[pokemonId] && formId in pokemonData[pokemonId].forms ? i18n(pokemonData[pokemonId].forms[formId].formName) : ''
 }
 
 function getPokemonNameWithForm(pokemonId, formId, evolutionId = 0) {
@@ -123,11 +133,11 @@ function getPokemonGen(id) {
 }
 
 function getMoveName(id) {
-    return i8ln(moveData[id].name)
+    return i18n(moveData[id].name)
 }
 
 function getMoveType(id) {
-    return i8ln(moveData[id].type)
+    return i18n(moveData[id].type)
 }
 
 function getMoveTypeNoI8ln(id) {
@@ -135,7 +145,7 @@ function getMoveTypeNoI8ln(id) {
 }
 
 function getPokemonRarity(pokemonId) {
-    if (pokemonRarities.hasOwnProperty(pokemonId)) {
+    if (pokemonId in pokemonRarities) {
         return pokemonRarities[pokemonId]
     }
 
@@ -143,15 +153,11 @@ function getPokemonRarity(pokemonId) {
 }
 
 function getPokemonRarityName(pokemonId) {
-    if (pokemonRarities.hasOwnProperty(pokemonId)) {
-        return i8ln(rarityNames[pokemonRarities[pokemonId] - 1])
-    }
-
-    return i8ln('New Spawn')
+    return i18n(rarityNames[getPokemonRarity(pokemonId) - 1])
 }
 
-function getPokemonRawIconUrl(pokemon) {
-    if (!serverSettings.generateImages) {
+function getPokemonRawIconUrl(pokemon, generateImages) {
+    if (!generateImages) {
         return `static/icons/${pokemon.pokemon_id}.png`
     }
 
@@ -165,8 +171,8 @@ function getPokemonRawIconUrl(pokemon) {
     return `pkm_img?raw=1&pkm=${pokemon.pokemon_id}${genderParam}${formParam}${costumeParam}${evolutionParam}${shinyParm}${weatherParam}`
 }
 
-function getPokemonMapIconUrl(pokemon) {
-    if (!serverSettings.generateImages) {
+function getPokemonMapIconUrl(pokemon, generateImages) {
+    if (!generateImages) {
         return `static/icons/${pokemon.pokemon_id}.png`
     }
 
@@ -209,13 +215,13 @@ function getPokemonLevel(cpMultiplier) {
     return pokemonLevel
 }
 
-function setupPokemonMarker(pokemon, layerGroup) {
-    var icon = L.icon({ // eslint-disable-line new-cap
-        iconUrl: getPokemonMapIconUrl(pokemon),
+function setupPokemonMarker(pokemon, layerGroup, generateImages) {
+    var icon = L.icon({
+        iconUrl: getPokemonMapIconUrl(pokemon, generateImages),
         iconSize: [32, 32]
     })
 
-    return L.marker([pokemon.latitude, pokemon.longitude], {icon: icon}).addTo(layerGroup)
+    return L.marker([pokemon.latitude, pokemon.longitude], { icon: icon }).addTo(layerGroup)
 }
 
 function searchPokemon(searchtext) {
@@ -259,9 +265,9 @@ function searchPokemon(searchtext) {
                         (item.type1.toLowerCase() == (searchstring.toLowerCase()) ||
                         item.type2.toLowerCase() == (searchstring.toLowerCase()))) {
                     if (operator === 'add') {
-                        foundPokemon.push(item['id'])
+                        foundPokemon.push(item.id)
                     } else {
-                        delete foundPokemon[foundPokemon.indexOf(item['id'])]
+                        delete foundPokemon[foundPokemon.indexOf(item.id)]
                     }
                 }
             })
