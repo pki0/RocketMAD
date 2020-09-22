@@ -1318,6 +1318,33 @@ $(function () {
 
     initBackupModals()
 
+    var eventData = ''
+    var eventName = ''
+    var events
+    var pattern
+    $.ajax({
+        cache: false,
+        url: 'static/data/events.json',
+        dataType: 'json',
+        success: function(data) {
+                   for (const [key, value] of Object.entries(data)) {
+                     eventData += '<a href=' + value["Url"] + ' target=&quot;_blank&quot;>'
+
+		     pattern = /(\d{2})\.(\d{2})\.(\d{4}) (\d{2})\:(\d{2})/;
+                     if (new Date(value["Start"].replace(pattern,'$3-$2-$1 $4:$5:00')) < new Date()) {
+			eventData += '<p style="color:MediumSeaGreen; margin-bottom:-25px; font-weight:bold">' + value["Name"] + '</p></a>'
+                     }
+                     else {
+			eventData += '<p style="color:Tomato; margin-bottom:-25px; font-weight:bold;">' + value["Name"] + '</p></a>'
+		     }
+                     eventData += '\nStart: ' + value["Start"] + '\nEnde: ' + value["End"] + '\n\n'
+                   }
+
+                   events = $('#events').html(eventData)
+                   events.html(events.html().replace(/\n/g,'<br/>'))
+                 }
+                });
+
     // Init data tables.
     if (serverSettings.pokemons) {
         $('#pokemon-table').DataTable({

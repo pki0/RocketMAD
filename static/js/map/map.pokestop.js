@@ -284,7 +284,7 @@ function pokestopLabel(pokestop) {
         if (invasionType) {
             typeDisplay = `
                 <div>
-                  ${i8ln('Type')}: <strong>${invasionType}</strong>
+                  ${i18n('Type')}: <strong>${invasionType}</strong>
                 </div>`
         }
 
