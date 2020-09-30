@@ -36,13 +36,13 @@ function nestLabel(nest) {
               </div>
               <div class='info-container'>
                 <div>
-                  Park name: <strong>${nest.name}</strong>
+                  ${i18n('Park name')}: <strong>${nest.name}</strong>
                 </div>
                 <div>
-                  Spawns per hour: <strong>${nest.pokemon_avg}</strong>
+                  ${i18n('Spawns per hour')}: <strong>${nest.pokemon_avg}</strong>
                 </div>
                 <div>
-                    Last updated: <strong>${timestampToDateTime(nest.last_updated)}</strong>
+                    ${i18n('Last updated')}: <strong>${timestampToDateTime(nest.last_updated)}</strong>
                 </div>
               </div>
             <div>
