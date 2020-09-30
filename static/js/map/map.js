@@ -1324,7 +1324,7 @@ $(function () {
     var pattern
     $.ajax({
         cache: false,
-        url: 'static/data/events.json',
+        url: 'static/dist/data/events/events.min.json',
         dataType: 'json',
         success: function(data) {
                    for (const [key, value] of Object.entries(data)) {
