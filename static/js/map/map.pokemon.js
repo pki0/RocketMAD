@@ -240,11 +240,12 @@ function pokemonLabel(item) {
               </div>
               <div>
                ${i18n('Charge')}: <strong>${move2Name}</strong> <img class='move-type-icon' src='static/images/types/${move2Type.toLowerCase()}.png' title='${i18n(move2Type)}' width='15'>
-              </div>
-              <div>
-                ${i18n('Weight')}: <strong>${weight}kg</strong> | ${i18n('Height')}: <strong>${height}m</strong>
-              </div>
-              ${catchRatesDisplay}
+              </div>`
+              //<div>
+                //${i18n('Weight')}: <strong>${weight}kg</strong> | ${i18n('Height')}: <strong>${height}m</strong>
+              //</div>
+              //${catchRatesDisplay}
+              + `
             </div>`
 
         let rarityDisplay = ''
