@@ -14,8 +14,17 @@ const rarityNames = ['Common', 'Uncommon', 'Rare', 'Very Rare', 'Ultra Rare', 'N
 const genderClasses = ['fa-mars', 'fa-venus', 'fa-neuter']
 var pokemonSearchList = []
 const availablePokemonCount = 649
-const shiny_list = [1, 4, 7, 10, 13, 16, 19, 23, 25, 27, 41, 43, 48, 50, 52, 54, 56, 58, 60, 63, 66, 69, 72, 74, 77, 81, 86, 88, 90, 92, 95, 96, 98, 100, 102, 104, 108, 109, 111, 113, 114, 115, 116, 120, 123, 126, 127, 128, 129, 131, 133, 138, 140, 142, 147, 152, 155, 158, 161, 170, 177, 179, 183, 185, 190, 191, 193, 198, 200, 201, 202, 204, 206, 207, 209, 211, 213, 215, 216, 220, 225, 227, 228, 234, 246, 252, 255, 258, 261, 263, 265, 270, 273, 276, 278, 280, 287, 290, 296, 300, 302, 303, 304, 307, 309, 311, 312, 313, 314, 315, 318, 320, 325, 328, 333, 335, 336, 337, 338, 339, 343, 345, 347, 349, 351, 353, 355, 359, 361, 366, 370, 371, 374, 386, 387, 390, 393, 403, 412, 425, 427, 431, 436, 443, 449, 451, 453, 459, 504, 506, 519, 524, 527, 532, 557, 562, 572, 599, 631, 632, 633, 649]
+var shiny_list = []
 const pokemonIds = new Set()
+
+$.ajax({
+        cache: false,
+        url: 'static/dist/data/shiny/shiny.min.json',
+        dataType: 'json',
+        success: function(data) {
+			shiny_list = data["shiny"]
+                   }
+});
 
 function initPokemonData() {
     if (!$.isEmptyObject(pokemonData)) {
