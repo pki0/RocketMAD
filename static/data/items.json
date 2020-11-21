@@ -117,6 +117,10 @@
     "name": "Silver Pinap Berry",
     "questBundles": [1, 2, 3, 5]
   },
+  "709": {
+    "name": "Knursp",
+    "questBundles": [1]
+  },
   "801": {
     "name": "Camera"
   },
