@@ -1,10 +1,11 @@
 /*
 globals $pokestopNameFilter, addListeners, autoPanPopup, getTimeUntil,
-invadedPokestopIds, lpad, luredPokestopIds, lureTypes, mapData, markers,
-markersNoCluster, notifiedPokestopData, pokestopInvasionZIndex,
+invadedPokestopIds, lpad, luredPokestopIds, lureTypes, mapData,
+notifiedPokestopData, pokestopInvasionZIndex,
 pokestopLureZIndex, pokestopNotifiedZIndex, pokestopQuestZIndex,
 pokestopZIndex, removeMarker, removeRangeCircle, sendNotification, settings,
-setupRangeCircle, updateLabelDiffTime, updateRangeCircle
+setupRangeCircle, updateLabelDiffTime, updateRangeCircle, updateMarkerLayer,
+filterManagers
 */
 /* exported processPokestop */
 
@@ -17,18 +18,18 @@ function isPokestopMeetsQuestFilters(pokestop) {
         switch (pokestop.quest.reward_type) {
             case 2: {
                 const id = pokestop.quest.item_id + '_' + pokestop.quest.item_amount
-                return !settings.excludedQuestItems.includes(id)
+                return !settings.excludedQuestItems.has(id)
             }
             case 3: {
                 const id = '6_' + pokestop.quest.stardust
-                return !settings.excludedQuestItems.includes(id)
+                return !settings.excludedQuestItems.has(id)
             }
             case 7: {
                 return !settings.excludedQuestPokemon.has(pokestop.quest.pokemon_id)
             }
             case 12: {
                 const id = '7_' + pokestop.quest.item_amount
-                return !settings.excludedQuestItems.includes(id)
+                return !settings.excludedQuestItems.has(id)
             }
         }
     }
@@ -42,7 +43,7 @@ function isPokestopMeetsInvasionFilters(pokestop) {
     }
 
     if (settings.filterInvasions) {
-        return !settings.excludedInvasions.includes(pokestop.incident_grunt_type)
+        return !settings.excludedInvasions.has(pokestop.incident_grunt_type)
     }
 
     return true
@@ -77,12 +78,7 @@ function isPokestopRangesActive() {
 }
 
 function setupPokestopMarker(pokestop, isNotifPokestop) {
-    var marker = L.marker([pokestop.latitude, pokestop.longitude])
-    if (isNotifPokestop) {
-        markersNoCluster.addLayer(marker)
-    } else {
-        markers.addLayer(marker)
-    }
+    const marker = L.marker([pokestop.latitude, pokestop.longitude])
 
     marker.setBouncingOptions({
         bounceHeight: 20,
@@ -100,9 +96,9 @@ function setupPokestopMarker(pokestop, isNotifPokestop) {
 }
 
 function updatePokestopMarker(pokestop, marker, isNotifPokestop) {
-    var shadowImage = null
-    var shadowSize = null
-    var shadowAnchor = null
+    let shadowImage = null
+    let shadowSize = null
+    let shadowAnchor = null
     const upscaleModifier = isNotifPokestop && settings.upscaleNotifMarkers ? 1.3 : 1
 
     if (isPokestopMeetsQuestFilters(pokestop)) {
@@ -127,7 +123,7 @@ function updatePokestopMarker(pokestop, marker, isNotifPokestop) {
         }
     }
 
-    var icon = L.icon({
+    const icon = L.contentIcon({
         iconUrl: getPokestopIconUrlFiltered(pokestop),
         iconSize: [32 * upscaleModifier, 32 * upscaleModifier],
         iconAnchor: [16 * upscaleModifier, 32 * upscaleModifier],
@@ -150,21 +146,7 @@ function updatePokestopMarker(pokestop, marker, isNotifPokestop) {
         marker.setZIndexOffset(pokestopZIndex)
     }
 
-    if (isNotifPokestop && markers.hasLayer(marker)) {
-        // Marker in wrong layer, move to other layer.
-        markers.removeLayer(marker)
-        markersNoCluster.addLayer(marker)
-    } else if (!isNotifPokestop && markersNoCluster.hasLayer(marker)) {
-        // Marker in wrong layer, move to other layer.
-        markersNoCluster.removeLayer(marker)
-        markers.addLayer(marker)
-    }
-
-    if (settings.bounceNotifMarkers && isNotifPokestop && !notifiedPokestopData[pokestop.pokestop_id].animationDisabled && !marker.isBouncing()) {
-        marker.bounce()
-    } else if (marker.isBouncing() && (!settings.bounceNotifMarkers || !isNotifPokestop)) {
-        marker.stopBouncing()
-    }
+    updateMarkerLayer(marker, isNotifPokestop, notifiedPokestopData[pokestop.pokestop_id])
 
     return marker
 }
@@ -209,14 +191,14 @@ function pokestopLabel(pokestop) {
                 rewardText = quest.item_amount + ' ' + getItemName(quest.item_id)
                 excludeFunction = `excludeQuestItem(${quest.item_id},${quest.item_amount})`
                 notifFunction = `toggleQuestItemNotif(${quest.item_id},${quest.item_amount})`
-                isNotifQuest = settings.notifQuestItems.includes(quest.item_id + '_' + quest.item_amount)
+                isNotifQuest = settings.notifQuestItems.has(quest.item_id + '_' + quest.item_amount)
                 break
             case 3:
                 rewardImageUrl = getItemImageUrl(6)
                 rewardText = quest.stardust + ' ' + getItemName(6)
                 excludeFunction = `excludeQuestItem(6,${quest.stardust})`
                 notifFunction = `toggleQuestItemNotif(6,${quest.stardust})`
-                isNotifQuest = settings.notifQuestItems.includes('6_' + quest.stardust)
+                isNotifQuest = settings.notifQuestItems.has('6_' + quest.stardust)
                 break
             case 7:
                 rewardImageUrl = getPokemonRawIconUrl({ pokemon_id: quest.pokemon_id, form: quest.form_id, costume: quest.costume_id }, serverSettings.generateImages)
@@ -231,7 +213,7 @@ function pokestopLabel(pokestop) {
                 rewardText = `${quest.item_amount} ${getPokemonName(quest.pokemon_id)} ${getItemName(7)}`
                 excludeFunction = `excludeQuestItem(7,${quest.item_amount})`
                 notifFunction = `toggleQuestItemNotif(7,${quest.item_amount})`
-                isNotifQuest = settings.notifQuestItems.includes('7_' + quest.item_amount)
+                isNotifQuest = settings.notifQuestItems.has('7_' + quest.item_amount)
         }
 
         const notifText = isNotifQuest ? i18n('Don\'t notify') : i18n('Notify')
@@ -275,7 +257,7 @@ function pokestopLabel(pokestop) {
         const grunt = getInvasionGrunt(invasionId)
         const invasionType = getInvasionType(invasionId)
         const pokemon = getInvasionPokemon(invasionId)
-        const isNotifInvasion = settings.notifInvasions.includes(invasionId)
+        const isNotifInvasion = settings.notifInvasions.has(invasionId)
         const notifText = isNotifInvasion ? i18n('Don\'t notify') : i18n('Notify')
         const notifIconClass = isNotifInvasion ? 'fas fa-bell-slash' : 'fas fa-bell'
         let typeDisplay = ''
@@ -531,33 +513,39 @@ function removePokestop(pokestop) {
 }
 
 function excludeQuestPokemon(id) { // eslint-disable-line no-unused-vars
-    if (!settings.excludedQuestPokemon.has(id)) {
-        $('label[for="exclude-quest-pokemon"] .pokemon-filter-list .filter-button[data-id="' + id + '"]').click()
+    if (filterManagers.excludedQuestPokemon !== null) {
+        filterManagers.excludedQuestPokemon.add([id])
     }
 }
 
 function excludeQuestItem(id, bundle) { // eslint-disable-line no-unused-vars
-    if (!settings.excludedQuestItems.includes(id + '_' + bundle)) {
-        $('label[for="exclude-quest-items"] .quest-item-filter-list .filter-button[data-id="' + id + '"][data-bundle="' + bundle + '"]').click()
+    if (filterManagers.excludedQuestItems !== null) {
+        filterManagers.excludedQuestItems.add([id + '_' + bundle])
     }
 }
 
 function excludeInvasion(id) { // eslint-disable-line no-unused-vars
-    if (!settings.excludedInvasions.includes(id)) { // eslint-disable-line no-unused-vars
-        $('label[for="exclude-invasions"] .invasion-filter-list .filter-button[data-id="' + id + '"]').click()
+    if (filterManagers.excludedInvasions !== null) {
+        filterManagers.excludedInvasions.add([id])
     }
 }
 
 function toggleQuestPokemonNotif(id) { // eslint-disable-line no-unused-vars
-    $('label[for="no-notif-quest-pokemon"] .pokemon-filter-list .filter-button[data-id="' + id + '"]').click()
+    if (filterManagers.notifQuestPokemon !== null) {
+        filterManagers.notifQuestPokemon.toggle(id)
+    }
 }
 
 function toggleQuestItemNotif(id, bundle) { // eslint-disable-line no-unused-vars
-    $('label[for="no-notif-quest-items"] .quest-item-filter-list .filter-button[data-id="' + id + '"][data-bundle="' + bundle + '"]').click()
+    if (filterManagers.notifQuestItems !== null) {
+        filterManagers.notifQuestItems.toggle(id + '_' + bundle)
+    }
 }
 
 function toggleInvasionNotif(id) { // eslint-disable-line no-unused-vars
-    $('label[for="no-notif-invasions"] .invasion-filter-list .filter-button[data-id="' + id + '"]').click()
+    if (filterManagers.notifInvasions !== null) {
+        filterManagers.notifInvasions.toggle(id)
+    }
 }
 
 function getPokestopIconUrlFiltered(pokestop) {
@@ -586,14 +574,14 @@ function getPokestopNotificationInfo(pokestop) {
             switch (pokestop.quest.reward_type) {
                 case 2: {
                     const itemId = pokestop.quest.item_id + '_' + pokestop.quest.item_amount
-                    if (settings.notifQuestItems.includes(itemId)) {
+                    if (settings.notifQuestItems.has(itemId)) {
                         questNotif = true
                     }
                     break
                 }
                 case 3: {
                     const itemId = '6_' + pokestop.quest.stardust
-                    if (settings.notifQuestItems.includes(itemId)) {
+                    if (settings.notifQuestItems.has(itemId)) {
                         questNotif = true
                     }
                     break
@@ -606,7 +594,7 @@ function getPokestopNotificationInfo(pokestop) {
                 }
                 case 12: {
                     const itemId = '7_' + pokestop.quest.item_amount
-                    if (settings.notifQuestItems.includes(itemId)) {
+                    if (settings.notifQuestItems.has(itemId)) {
                         questNotif = true
                     }
                 }
@@ -614,7 +602,7 @@ function getPokestopNotificationInfo(pokestop) {
         }
 
         if (settings.invasionNotifs && isPokestopMeetsInvasionFilters(pokestop) &&
-                settings.notifInvasions.includes(pokestop.incident_grunt_type)) {
+                settings.notifInvasions.has(pokestop.incident_grunt_type)) {
             invasionNotif = true
         }
 

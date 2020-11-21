@@ -1,10 +1,11 @@
 /*
 globals addListeners, autoPanPopup, cryFileTypes, isShowAllZoom, mapData,
-markers, markersNoCluster, notifiedPokemonData, pokemonNewSpawnZIndex,
+notifiedPokemonData, pokemonNewSpawnZIndex,
 pokemonNotifiedZIndex, pokemonRareZIndex, pokemonUltraRareZIndex,
 pokemonUncommonZIndex, pokemonVeryRareZIndex, pokemonZIndex, removeMarker,
 removeRangeCircle, sendNotification, settings, setupRangeCircle,
-updateRangeCircle, weatherClassesDay, weatherNames,
+updateRangeCircle, weatherClassesDay, weatherNames, updateMarkerLayer,
+createPokemonMarker, filterManagers
 */
 /* exported processPokemon, updatePokemons */
 
@@ -129,21 +130,7 @@ function updatePokemonMarker(pokemon, marker, isNotifPokemon) {
         marker.setZIndexOffset(pokemonZIndex)
     }
 
-    if (isNotifPokemon && markers.hasLayer(marker)) {
-        // Marker in wrong layer, move to other layer.
-        markers.removeLayer(marker)
-        markersNoCluster.addLayer(marker)
-    } else if (!isNotifPokemon && markersNoCluster.hasLayer(marker)) {
-        // Marker in wrong layer, move to other layer.
-        markersNoCluster.removeLayer(marker)
-        markers.addLayer(marker)
-    }
-
-    if (settings.bounceNotifMarkers && isNotifPokemon && !notifiedPokemonData[pokemon.encounter_id].animationDisabled && !marker.isBouncing()) {
-        marker.bounce()
-    } else if (marker.isBouncing() && (!settings.bounceNotifMarkers || !isNotifPokemon)) {
-        marker.stopBouncing()
-    }
+    updateMarkerLayer(marker, isNotifPokemon, notifiedPokemonData[pokemon.encounter_id])
 
     return marker
 }
@@ -305,7 +292,7 @@ function pokemonLabel(item) {
               <div>
                 <a href='javascript:togglePokemonNotif(${id})' class='link-button' title="${notifText}"><i class="${notifIconClass}"></i></a>
                 <a href='javascript:excludePokemon(${id})' class='link-button' title=${i18n('Hide')}><i class="fas fa-eye-slash"></i></a>
-                <a href='javascript:removePokemonMarker("${encounterId}")' class='link-button' title='Remove'><i class="fas fa-trash"></i></a>
+                <a href='javascript:removePokemonMarker("${encounterId}")' class='link-button' title='${i18n('Remove')}><i class="fas fa-trash"></i></a>
                 <a href='https://pokemongo.gamepress.gg/pokemon/${id}' class='link-button' target='_blank' title='${i18n('View on GamePress')}'><i class="fas fa-info-circle"></i></a>
               </div>
             </div>
@@ -337,12 +324,9 @@ function processPokemon(pokemon) {
             sendPokemonNotification(pokemon)
         }
 
-        if (isNotifPoke) {
-            pokemon.marker = setupPokemonMarker(pokemon, markersNoCluster, serverSettings.generateImages)
-        } else {
-            pokemon.marker = setupPokemonMarker(pokemon, markers, serverSettings.generateImages)
-        }
+        pokemon.marker = createPokemonMarker(pokemon, serverSettings.generateImages)
         customizePokemonMarker(pokemon, pokemon.marker, isNotifPoke)
+
         if (isPokemonRangesActive()) {
             pokemon.rangeCircle = setupRangeCircle(pokemon, 'pokemon', !isNotifPoke)
         }
@@ -470,13 +454,15 @@ function getExcludedPokemon() {
 }
 
 function excludePokemon(id) { // eslint-disable-line no-unused-vars
-    if (!settings.excludedPokemon.has(id)) {
-        $('label[for="exclude-pokemon"] .pokemon-filter-list .filter-button[data-id="' + id + '"]').click()
+    if (filterManagers.excludedPokemon !== null) {
+        filterManagers.excludedPokemon.add([id])
     }
 }
 
 function togglePokemonNotif(id) { // eslint-disable-line no-unused-vars
-    $('label[for="no-notif-pokemon"] .pokemon-filter-list .filter-button[data-id="' + id + '"]').click()
+    if (filterManagers.notifPokemon !== null) {
+        filterManagers.notifPokemon.toggle(id)
+    }
 }
 
 function isNotifPokemon(pokemon) {

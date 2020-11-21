@@ -150,7 +150,17 @@ function initSettingsSidebar() {
     $('#settings-sidenav').sidenav({
         draggable: false
     })
-    $('.collapsible').collapsible()
+
+    $('.collapsible').collapsible({
+        onOpenStart: function (li) {
+            if ($(li).data('formInitialized')) {
+                return
+            }
+
+            $('select', li).formSelect()
+            $(li).data('formInitialized', true)
+        }
+    })
 
     const settingsSideNavElem = document.getElementById('settings-sidenav')
     settingsSideNav = M.Sidenav.getInstance(settingsSideNavElem)
@@ -1532,651 +1542,454 @@ function initSettingsSidebar() {
         markerStyles = data // eslint-disable-line
         updateStartLocationMarker()
         updateUserLocationMarker()
+
+        const startSelect = document.getElementById('start-location-marker-icon-select')
+        const userSelect = document.getElementById('user-location-marker-icon-select')
+
         $.each(data, function (id, value) {
-            const dataIconStr = value.icon ? `data-icon="${value.icon}"` : ''
-            const option = `<option value="${id}" ${dataIconStr}>${i18n(value.name)}</option>`
-            $('#start-location-marker-icon-select').append(option)
-            $('#user-location-marker-icon-select').append(option)
+            const option = document.createElement('option')
+            option.value = id
+            option.dataset.icon = value.icon ? value.icon : ''
+            option.text = i18n(value.name)
+            startSelect.options.add(option.cloneNode(true))
+            userSelect.options.add(option)
         })
-        $('#start-location-marker-icon-select').val(settings.startLocationMarkerStyle)
-        $('#user-location-marker-icon-select').val(settings.userLocationMarkerStyle)
-        $('#start-location-marker-icon-select').formSelect()
-        $('#user-location-marker-icon-select').formSelect()
+
+        function updateMarkerIconSelect(select, value) {
+            select.value = value
+            if (M.FormSelect.getInstance(select)) {
+                M.FormSelect.init(select)
+            }
+        }
+
+        updateMarkerIconSelect(startSelect, settings.startLocationMarkerStyle)
+        updateMarkerIconSelect(userSelect, settings.userLocationMarkerStyle)
     }).fail(function () {
         console.log('Error loading search marker styles JSON.')
     })
+}
 
-    // Initialize select elements.
-    $('select').formSelect()
+const createFilterButton = (function () {
+    let templateDiv
+    let lazyImageObserver
+
+    function createTemplateDiv() {
+        const containerDiv = document.createElement('div')
+        containerDiv.innerHTML = `
+          <div class='filter-button'>
+            <div class='filter-button-content'>
+              <div id='btnheader'></div>
+              <div><div class='filter-image'></div>
+              <div id='btnfooter'></div>
+            </div>
+          </div>`
+        return containerDiv.firstElementChild
+    }
+
+    function tryCreateLazyImageObserver() {
+        if (!('IntersectionObserver' in window)) {
+            return null
+        }
+
+        return new IntersectionObserver(function (entries, observer) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const lazyImage = entry.target
+                    lazyImage.style.content = lazyImage.dataset.lazyContent
+                    delete lazyImage.dataset.lazyContent
+                    observer.unobserve(lazyImage)
+                }
+            })
+        })
+    }
+
+    return function (id, header, footer, iconUrl, isActive) {
+        if (typeof templateDiv === 'undefined') {
+            templateDiv = createTemplateDiv()
+        }
+        if (typeof lazyImageObserver === 'undefined') {
+            lazyImageObserver = tryCreateLazyImageObserver()
+        }
+
+        // Clone a template div, which is faster than creating and parsing HTML for each filter button.
+        const buttonDiv = templateDiv.cloneNode(true)
+        buttonDiv.dataset.id = id
+        if (isActive) {
+            buttonDiv.classList.add('active')
+        }
+
+        const headerDiv = buttonDiv.querySelector('#btnheader')
+        headerDiv.removeAttribute('id')
+        headerDiv.textContent = header
+
+        const imageDiv = buttonDiv.querySelector('div.filter-image')
+        const imageContent = `url(${iconUrl})`
+        if (lazyImageObserver === null) {
+            imageDiv.style.content = imageContent
+        } else {
+            imageDiv.dataset.lazyContent = imageContent
+            lazyImageObserver.observe(imageDiv)
+        }
+
+        const footerDiv = buttonDiv.querySelector('#btnfooter')
+        footerDiv.removeAttribute('id')
+        footerDiv.textContent = footer
+
+        return buttonDiv
+    }
+})()
+
+// Sets a materialize modal function, while keeping the old one if it exists.
+function setModalFunction(modalDiv, optionName, fn) {
+    const modal = M.Modal.getInstance(modalDiv) || M.Modal.init(modalDiv)
+    const existingOption = modal.options[optionName]
+    modal.options[optionName] = typeof existingOption === 'function'
+        ? () => {
+            existingOption()
+            fn()
+        }
+        : fn
+}
+
+class FilterManager {
+    constructor(modalId, settingsKey, title, isExclusion, onAdded, onRemoved) {
+        this._settingsKey = settingsKey
+        this._title = title
+        this.isExclusion = isExclusion
+        this._onAdded = onAdded
+        this._onRemoved = onRemoved
+
+        const modalDiv = document.getElementById(modalId)
+        this._settingsIds = settings[settingsKey]
+        this._titleElement = modalDiv.querySelector(this.getTitleSelector())
+        this._buttonById = { }
+        this._modalInitialized = false
+
+        setModalFunction(modalDiv, 'onOpenStart', () => {
+            if (this._modalInitialized) {
+                return
+            }
+
+            const filterListDiv = modalDiv.querySelector(this.getListSelector())
+
+            for (const id of this.getAllIds()) {
+                const isActive = this._settingsIds.has(id) !== isExclusion
+                const button = createFilterButton(
+                    id,
+                    this.getButtonHeader(id),
+                    this.getButtonFooter(id),
+                    this.getButtonIconUrl(id),
+                    isActive
+                )
+                this._buttonById[id] = button
+                filterListDiv.appendChild(button)
+            }
+
+            this._updateTitle()
+
+            filterListDiv.addEventListener('click', e => {
+                const button = e.target.closest('.filter-button')
+                if (button === null) {
+                    return
+                }
+
+                const id = this.idFromString(button.dataset.id)
+                if (button.classList.contains('active') === isExclusion) {
+                    this.add([id])
+                } else {
+                    this.remove([id])
+                }
+            })
+
+            function onSelectDeselectAllClick(isSelect, e) {
+                e.preventDefault()
+
+                const visibleIds = []
+                for (const idString in this._buttonById) {
+                    const button = this._buttonById[idString]
+                    if (button.style.display !== 'none' && button.classList.contains('active') !== isSelect) {
+                        visibleIds.push(this.idFromString(idString))
+                    }
+                }
+
+                if (isExclusion === isSelect) {
+                    this.remove(visibleIds)
+                } else {
+                    this.add(visibleIds)
+                }
+            }
+
+            filterListDiv.parentElement.querySelector('.filter-select-all').addEventListener('click', onSelectDeselectAllClick.bind(this, true))
+            filterListDiv.parentElement.querySelector('.filter-deselect-all').addEventListener('click', onSelectDeselectAllClick.bind(this, false))
+
+            this._modalInitialized = true
+        })
+    }
+
+    getListSelector() { throw Error('Not implemented') }
+    getTitleSelector() { throw Error('Not implemented') }
+    getAllIds() { throw Error('Not implemented') }
+    getButtonHeader() { throw Error('Not implemented') }
+    getButtonFooter() { throw Error('Not implemented') }
+    getButtonIconUrl() { throw Error('Not implemented') }
+    idFromString() { throw Error('Not implemented') }
+
+    _toggleButtonActive(pokemonId, isActive) {
+        if (this._modalInitialized) {
+            const button = this._buttonById[pokemonId]
+            if (button) {
+                button.classList.toggle('active', isActive)
+            }
+        }
+    }
+
+    _updateTitle() {
+        const activeCount = this.isExclusion ? this.getAllIds().size - this._settingsIds.size : this._settingsIds.size
+        const countDisplay = activeCount === this.getAllIds().size ? i18n('All') : activeCount.toString()
+        this._titleElement.textContent = `${this._title} (${countDisplay})`
+    }
+
+    add(ids) {
+        for (const id of ids) {
+            this._settingsIds.add(id)
+            this._toggleButtonActive(id, !this.isExclusion)
+        }
+
+        this._updateTitle()
+        this._onAdded(ids)
+        Store.set(this._settingsKey, this._settingsIds)
+    }
+
+    remove(ids) {
+        for (const id of ids) {
+            this._settingsIds.delete(id)
+            this._toggleButtonActive(id, this.isExclusion)
+        }
+
+        this._updateTitle()
+        this._onRemoved(ids)
+        Store.set(this._settingsKey, this._settingsIds)
+    }
+
+    clear() {
+        this.remove(this._settingsIds)
+    }
+
+    toggle(id) {
+        if (this._settingsIds.has(id)) {
+            this.remove([id])
+        } else {
+            this.add([id])
+        }
+    }
+}
+
+const filterManagers = {
+    excludedPokemon: null,
+    notifPokemon: null,
+    noFilterValuesPokemon: null,
+    notifValuesPokemon: null,
+    excludedRaidPokemon: null,
+    notifRaidPokemon: null,
+    excludedQuestPokemon: null,
+    notifQuestPokemon: null,
+    excludedQuestItems: null,
+    notifQuestItems: null,
+    excludedInvasions: null,
+    notifInvasions: null
 }
 
 function initPokemonFilters() {
-    const pokemonIds = getPokemonIds()
+    const allPokemonIds = getPokemonIds()
 
-    let list = ''
-    for (const id of pokemonIds) {
-        list += `
-            <div class='filter-button' data-id='${id}'>
-              <div class='filter-button-content'>
-                <div>#${id}</div>
-                <div><img class='lazy' src='static/images/placeholder.png' data-src='${getPokemonRawIconUrl({ pokemon_id: id }, serverSettings.generateImages)}' width='32'></div>
-                <div>${getPokemonName(id)}</div>
-              </div>
-            </div>`
+    class PokemonFilterManager extends FilterManager {
+        getListSelector() { return '.pokemon-filter-list' }
+        getTitleSelector() { return '.pokemon-filter-title' }
+        getAllIds() { return allPokemonIds }
+        getButtonHeader(id) { return '#' + id }
+        getButtonFooter(id) { return getPokemonName(id) }
+        getButtonIconUrl(id) { return getPokemonRawIconUrl({ pokemon_id: id }, serverSettings.generateImages) }
+        idFromString(idString) { return parseInt(idString) }
     }
-    $('.pokemon-filter-list').html(list)
 
-    $('.pokemon-filter-list').on('click', '.filter-button', function () {
-        var img = $(this)
-        var inputElement = $(this).parent().parent().find('input[id$=pokemon]')
-        var value = inputElement.val().length > 0 ? inputElement.val().split(',') : []
-        var id = img.data('id').toString()
-        if (img.hasClass('active')) {
-            inputElement.val((value.concat(id).join(','))).trigger('change')
-            img.removeClass('active')
-        } else {
-            inputElement.val(value.filter(function (elem) {
-                return elem !== id
-            }).join(',')).trigger('change')
-            img.addClass('active')
-        }
-    })
+    const searchInputs = document.querySelectorAll('.search')
+    searchInputs.forEach(function (searchInput) {
+        searchInput.addEventListener('input', () => {
+            const searchText = searchInput.value.replace(/\s/g, '')
+            const footer = searchInput.closest('.filter-footer-container')
+            const filterList = footer.previousElementSibling
+            const filterButtons = filterList.querySelectorAll('.filter-button')
+            const filterContainer = filterList.parentElement
+            const oldContainerDisplay = filterContainer.style.display
+            filterContainer.style.display = 'none'
 
-    $('.pokemon-select-all').on('click', function (e) {
-        e.preventDefault()
-        var parent = $(this).parent().parent().parent()
-        parent.find('.pokemon-filter-list .filter-button:visible').addClass('active')
-        parent.find('input[id$=pokemon]').val('').trigger('change')
-    })
+            if (searchText === '') {
+                filterButtons.forEach(function (filterButton) {
+                    filterButton.style.display = ''
+                })
+            } else {
+                const foundPokemonIds = searchPokemon(searchText)
+                filterButtons.forEach(function (filterButton) {
+                    filterButton.style.display = foundPokemonIds.has(parseInt(filterButton.dataset.id)) ? '' : 'none'
+                })
+            }
 
-    $('.pokemon-deselect-all').on('click', function (e) {
-        e.preventDefault()
-        var parent = $(this).parent().parent().parent()
-        parent.find('.pokemon-filter-list .filter-button:visible').removeClass('active')
-        parent.find('input[id$=pokemon]').val(Array.from(pokemonIds).join(',')).trigger('change')
-    })
-
-    $('.pokemon-select-filtered').on('click', function (e) {
-        e.preventDefault()
-        var parent = $(this).parent().parent().parent()
-        var inputElement = parent.find('input[id$=pokemon]')
-        var deselectedPokemons = inputElement.val().length > 0 ? inputElement.val().split(',') : []
-        var visibleNotActiveIconElements = parent.find('.filter-button:visible:not(.active)')
-        visibleNotActiveIconElements.addClass('active')
-        $.each(visibleNotActiveIconElements, function (i, item) {
-            var id = $(this).data('id').toString()
-            deselectedPokemons = deselectedPokemons.filter(function (item) {
-                return item !== id
-            })
-        })
-        inputElement.val(deselectedPokemons.join(',')).trigger('change')
-    })
-
-    $('.pokemon-deselect-filtered').on('click', function (e) {
-        e.preventDefault()
-        var parent = $(this).parent().parent().parent()
-        var inputElement = parent.find('input[id$=pokemon]')
-        var deselectedPokemons = inputElement.val().length > 0 ? inputElement.val().split(',') : []
-        var visibleActiveIconElements = parent.find('.filter-button:visible.active')
-        visibleActiveIconElements.removeClass('active')
-        $.each(visibleActiveIconElements, function (i, item) {
-            deselectedPokemons.push($(this).data('id'))
-        })
-        inputElement.val(deselectedPokemons.join(',')).trigger('change')
-    })
-
-    $('.search').on('input', function () {
-        var searchtext = $(this).val().toString()
-        var parent = $(this)
-        var foundPokemon = []
-        var pokeselectlist = $(this).parent().parent().prev('.pokemon-filter-list').find('.filter-button')
-        if (searchtext === '') {
-            parent.parent().parent().find('.pokemon-select-filtered, .pokemon-deselect-filtered').hide()
-            parent.parent().parent().find('.pokemon-select-all, .pokemon-deselect-all').show()
-            pokeselectlist.show()
-        } else {
-            pokeselectlist.hide()
-            parent.parent().parent().find('.pokemon-select-filtered, .pokemon-deselect-filtered').show()
-            parent.parent().parent().find('.pokemon-select-all, .pokemon-deselect-all').hide()
-            foundPokemon = searchPokemon(searchtext.replace(/\s/g, ''))
-        }
-
-        $.each(foundPokemon, function (i, item) {
-            parent.parent().parent().prev('.pokemon-filter-list').find('.filter-button[data-id="' + foundPokemon[i] + '"]').show()
+            filterContainer.style.display = oldContainerDisplay
         })
     })
 
     if (serverSettings.pokemons) {
-        $('#exclude-pokemon').val(Array.from(settings.excludedPokemon))
-        if (settings.excludedPokemon.size === 0) {
-            $('#filter-pokemon-title').text(`${i18n('Pokémon')} (${i18n('All')})`)
-        } else {
-            $('#filter-pokemon-title').text(`${i18n('Pokémon')} (${pokemonIds.size - settings.excludedPokemon.size})`)
-        }
-
-        $('label[for="exclude-pokemon"] .pokemon-filter-list .filter-button').each(function () {
-            if (!settings.excludedPokemon.has($(this).data('id'))) {
-                $(this).addClass('active')
-            }
-        })
-
-        $('#exclude-pokemon').on('change', function (e) {
-            const prevExcludedPokemon = settings.excludedPokemon
-            settings.excludedPokemon = $(this).val().length > 0 ? new Set($(this).val().split(',').map(Number)) : new Set()
-
-            const newExcludedPokemon = difference(settings.excludedPokemon, prevExcludedPokemon)
-            if (newExcludedPokemon.size > 0) {
-                updatePokemons(newExcludedPokemon)
-            }
-
-            const newReincludedPokemon = difference(prevExcludedPokemon, settings.excludedPokemon)
-            reincludedPokemon = union(reincludedPokemon, newReincludedPokemon)
-            if (reincludedPokemon.size > 0) {
+        filterManagers.excludedPokemon = new PokemonFilterManager(
+            'pokemon-filter-modal', 'excludedPokemon', i18n('Pokémon'), true,
+            pokemonIds => updatePokemons(new Set(pokemonIds)),
+            pokemonIds => {
+                for (const pokemonId of pokemonIds) {
+                    reincludedPokemon.add(pokemonId)
+                }
                 updateMap()
             }
+        )
 
-            if (settings.excludedPokemon.size === 0) {
-                $('#filter-pokemon-title').text(`${i18n('Pokémon')} (${i18n('All')})`)
-            } else {
-                $('#filter-pokemon-title').text(`${i18n('Pokémon')} (${pokemonIds.size - settings.excludedPokemon.size})`)
-            }
-
-            Store.set('excludedPokemon', settings.excludedPokemon)
-        })
+        filterManagers.notifPokemon = new PokemonFilterManager(
+            'notif-pokemon-filter-modal', 'notifPokemon', i18n('Notif Pokémon'), false,
+            pokemonIds => {
+                updatePokemons(new Set(pokemonIds))
+                if (settings.showNotifPokemonOnly || settings.showNotifPokemonAlways) {
+                    updateMap({ loadAllPokemon: true })
+                }
+            },
+            pokemonIds => updatePokemons(new Set(pokemonIds))
+        )
     }
 
     if (serverSettings.pokemonValues) {
-        $('#unfiltered-pokemon').val(Array.from(settings.noFilterValuesPokemon))
-        if (settings.noFilterValuesPokemon.size === 0) {
-            $('#filter-values-pokemon-title').text(`${i18n('Pokémon filtered by values')} (${i18n('All')})`)
-        } else {
-            $('#filter-values-pokemon-title').text(`${i18n('Pokémon filtered by values')} (${pokemonIds.size - settings.noFilterValuesPokemon.size})`)
-        }
-
-        $('label[for="unfiltered-pokemon"] .pokemon-filter-list .filter-button').each(function () {
-            if (!settings.noFilterValuesPokemon.has($(this).data('id'))) {
-                $(this).addClass('active')
-            }
-        })
-
-        $('#unfiltered-pokemon').on('change', function (e) {
-            const prevNoFilterValuesPokemon = settings.noFilterValuesPokemon
-            settings.noFilterValuesPokemon = $(this).val().length > 0 ? new Set($(this).val().split(',').map(Number)) : new Set()
-
-            const newFilterValuesPokemon = difference(prevNoFilterValuesPokemon, settings.noFilterValuesPokemon)
-            if (newFilterValuesPokemon.size > 0) {
-                updatePokemons(newFilterValuesPokemon)
-            }
-
-            const newNoFilterValuesPokemon = difference(settings.noFilterValuesPokemon, prevNoFilterValuesPokemon)
-            reincludedPokemon = union(reincludedPokemon, newNoFilterValuesPokemon)
-            if (reincludedPokemon.size > 0) {
+        filterManagers.noFilterValuesPokemon = new PokemonFilterManager(
+            'pokemon-values-filter-modal', 'noFilterValuesPokemon', i18n('Pokémon filtered by values'), true,
+            pokemonIds => {
+                for (const pokemonId of pokemonIds) {
+                    reincludedPokemon.add(pokemonId)
+                }
                 updateMap()
-            }
+            },
+            pokemonIds => updatePokemons(new Set(pokemonIds))
+        )
 
-            if (settings.noFilterValuesPokemon.size === 0) {
-                $('#filter-values-pokemon-title').text(`${i18n('Pokémon filtered by values')} (${i18n('All')})`)
-            } else {
-                $('#filter-values-pokemon-title').text(`${i18n('Pokémon filtered by values')} (${pokemonIds.size - settings.noFilterValuesPokemon.size})`)
-            }
-
-            Store.set('noFilterValuesPokemon', settings.noFilterValuesPokemon)
-        })
+        filterManagers.notifValuesPokemon = new PokemonFilterManager(
+            'notif-pokemon-values-filter-modal', 'notifValuesPokemon', i18n('Notif Pokémon filtered by values'), false,
+            pokemonIds => {
+                updatePokemons(new Set(pokemonIds))
+                if (settings.showNotifPokemonOnly || settings.showNotifPokemonAlways) {
+                    updateMap({ loadAllPokemon: true })
+                }
+            },
+            pokemonIds => updatePokemons(new Set(pokemonIds))
+        )
     }
 
     if (serverSettings.raidFilters) {
-        $('#exclude-raid-pokemon').val(Array.from(settings.excludedRaidPokemon))
-        if (settings.excludedRaidPokemon.size === 0) {
-            $('#filter-raid-pokemon-title').text(`${i18n('Raid Bosses')} (${i18n('All')})`)
-        } else {
-            $('#filter-raid-pokemon-title').text(`${i18n('Raid Bosses')} (${pokemonIds.size - settings.excludedRaidPokemon.size})`)
-        }
-
-        $('label[for="exclude-raid-pokemon"] .pokemon-filter-list .filter-button').each(function () {
-            if (!settings.excludedRaidPokemon.has($(this).data('id'))) {
-                $(this).addClass('active')
-            }
-        })
-
-        $('#exclude-raid-pokemon').on('change', function (e) {
-            const prevExcludedPokemon = settings.excludedRaidPokemon
-            settings.excludedRaidPokemon = $(this).val().length > 0 ? new Set($(this).val().split(',').map(Number)) : new Set()
-
-            const newExcludedPokemon = difference(settings.excludedRaidPokemon, prevExcludedPokemon)
-            if (newExcludedPokemon.size > 0 || settings.showGyms) {
+        filterManagers.excludedRaidPokemon = new PokemonFilterManager(
+            'raid-pokemon-filter-modal', 'excludedRaidPokemon', i18n('Raid Bosses'), true,
+            () => updateGyms(),
+            () => {
                 updateGyms()
-            }
-
-            const newIncludedPokemon = difference(prevExcludedPokemon, settings.excludedRaidPokemon)
-            if (newIncludedPokemon.size > 0) {
                 updateMap({ loadAllGyms: true })
             }
+        )
 
-            if (settings.excludedRaidPokemon.size === 0) {
-                $('#filter-raid-pokemon-title').text(`${i18n('Raid Bosses')} (${i18n('All')})`)
-            } else {
-                $('#filter-raid-pokemon-title').text(`${i18n('Raid Bosses')} (${pokemonIds.size - settings.excludedRaidPokemon.size})`)
-            }
-
-            Store.set('excludedRaidPokemon', settings.excludedRaidPokemon)
-        })
+        filterManagers.notifRaidPokemon = new PokemonFilterManager(
+            'notif-raid-pokemon-filter-modal', 'notifRaidPokemon', i18n('Notif Raid Bosses'), false,
+            () => updateGyms(),
+            () => updateGyms()
+        )
     }
 
     if (serverSettings.quests) {
-        $('#exclude-quest-pokemon').val(Array.from(settings.excludedQuestPokemon))
-        if (settings.excludedQuestPokemon.size === 0) {
-            $('a[href="#quest-pokemon-tab"]').text(`${i18n('Quest Pokémon')} (${i18n('All')})`)
-        } else {
-            $('a[href="#quest-pokemon-tab"]').text(`${i18n('Quest Pokémon')} (${pokemonIds.size - settings.excludedQuestPokemon.size})`)
-        }
-
-        $('label[for="exclude-quest-pokemon"] .pokemon-filter-list .filter-button').each(function () {
-            if (!settings.excludedQuestPokemon.has($(this).data('id'))) {
-                $(this).addClass('active')
-            }
-        })
-
-        $('#exclude-quest-pokemon').on('change', function (e) {
-            const prevExcludedPokemon = settings.excludedQuestPokemon
-            settings.excludedQuestPokemon = $(this).val().length > 0 ? new Set($(this).val().split(',').map(Number)) : new Set()
-
-            const newExcludedPokemon = difference(settings.excludedQuestPokemon, prevExcludedPokemon)
-            if (newExcludedPokemon.size > 0) {
+        filterManagers.excludedQuestPokemon = new PokemonFilterManager(
+            'quest-filter-modal', 'excludedQuestPokemon', i18n('Quest Pokémon'), true,
+            () => updatePokestops(),
+            () => {
                 updatePokestops()
-            }
-
-            const newIncludedPokemon = difference(prevExcludedPokemon, settings.excludedQuestPokemon)
-            if (newIncludedPokemon.size > 0) {
                 updateMap({ loadAllPokestops: true })
             }
+        )
 
-            if (settings.excludedQuestPokemon.size === 0) {
-                $('a[href="#quest-pokemon-tab"]').text(`${i18n('Quest Pokémon')} (${i18n('All')})`)
-            } else {
-                $('a[href="#quest-pokemon-tab"]').text(`${i18n('Quest Pokémon')} (${pokemonIds.size - settings.excludedQuestPokemon.size})`)
-            }
-            $('#quest-filter-tabs').tabs('updateTabIndicator')
-
-            Store.set('excludedQuestPokemon', settings.excludedQuestPokemon)
-        })
-    }
-
-    if (serverSettings.pokemons) {
-        const noNotifPoke = difference(pokemonIds, settings.notifPokemon)
-        $('#no-notif-pokemon').val(Array.from(noNotifPoke))
-        if (settings.notifPokemon.size === pokemonIds.size) {
-            $('#notif-pokemon-filter-title').text(`${i18n('Notif Pokémon')} (${i18n('All')})`)
-        } else {
-            $('#notif-pokemon-filter-title').text(`${i18n('Notif Pokémon')} (${settings.notifPokemon.size})`)
-        }
-
-        $('label[for="no-notif-pokemon"] .pokemon-filter-list .filter-button').each(function () {
-            if (settings.notifPokemon.has($(this).data('id'))) {
-                $(this).addClass('active')
-            }
-        })
-
-        $('#no-notif-pokemon').on('change', function (e) {
-            const prevNotifPokemon = settings.notifPokemon
-            const noNotifPokemon = $(this).val().length > 0 ? new Set($(this).val().split(',').map(Number)) : new Set()
-            settings.notifPokemon = difference(pokemonIds, noNotifPokemon)
-
-            const newNotifPokemon = difference(settings.notifPokemon, prevNotifPokemon)
-            const newNoNotifPokemon = intersection(noNotifPokemon, prevNotifPokemon)
-
-            updatePokemons(union(newNotifPokemon, newNoNotifPokemon))
-
-            if (newNotifPokemon.size > 0 && (settings.showNotifPokemonOnly || settings.showNotifPokemonAlways)) {
-                updateMap({ loadAllPokemon: true })
-            }
-
-            if (settings.notifPokemon.size === pokemonIds.size) {
-                $('#notif-pokemon-filter-title').text(`${i18n('Notif Pokémon')} (${i18n('All')})`)
-            } else {
-                $('#notif-pokemon-filter-title').text(`${i18n('Notif Pokémon')} (${settings.notifPokemon.size})`)
-            }
-
-            Store.set('notifPokemon', settings.notifPokemon)
-        })
-    }
-
-    if (serverSettings.pokemonValues) {
-        const noNotifPoke = difference(pokemonIds, settings.notifValuesPokemon)
-        $('#no-notif-values-pokemon').val(Array.from(noNotifPoke))
-        if (settings.notifValuesPokemon.size === pokemonIds.size) {
-            $('#notif-pokemon-values-filter-title').text(`${i18n('Notif Pokémon filtered by values')} (${i18n('All')})`)
-        } else {
-            $('#notif-pokemon-values-filter-title').text(`${i18n('Notif Pokémon filtered by values')} (${settings.notifValuesPokemon.size})`)
-        }
-
-        $('label[for="no-notif-values-pokemon"] .pokemon-filter-list .filter-button').each(function () {
-            if (settings.notifValuesPokemon.has($(this).data('id'))) {
-                $(this).addClass('active')
-            }
-        })
-
-        $('#no-notif-values-pokemon').on('change', function (e) {
-            const oldValues = settings.notifValuesPokemon
-            const noNotifPokemon = $(this).val().length > 0 ? new Set($(this).val().split(',').map(Number)) : new Set()
-            settings.notifValuesPokemon = difference(pokemonIds, noNotifPokemon)
-
-            const newValues = difference(settings.notifValuesPokemon, oldValues)
-            const removedValues = intersection(oldValues, settings.notifValuesPokemon)
-
-            updatePokemons(union(newValues, removedValues))
-
-            if (newValues.size > 0 && (settings.showNotifPokemonOnly || settings.showNotifPokemonAlways)) {
-                updateMap({ loadAllPokemon: true })
-            }
-
-            if (settings.notifValuesPokemon.size === pokemonIds.size) {
-                $('#notif-pokemon-values-filter-title').text(`${i18n('Notif Pokémon filtered by values')} (${i18n('All')})`)
-            } else {
-                $('#notif-pokemon-values-filter-title').text(`${i18n('Notif Pokémon filtered by values')} (${settings.notifValuesPokemon.size})`)
-            }
-
-            Store.set('notifValuesPokemon', settings.notifValuesPokemon)
-        })
-    }
-
-    if (serverSettings.raids) {
-        const noNotifPoke = difference(pokemonIds, settings.notifRaidPokemon)
-        $('#no-notif-raid-pokemon').val(Array.from(noNotifPoke))
-        if (settings.notifRaidPokemon.size === pokemonIds.size) {
-            $('#notif-raid-pokemon-filter-title').text(`${i18n('Notif Raid Bosses')} (${i18n('All')})`)
-        } else {
-            $('#notif-raid-pokemon-filter-title').text(`${i18n('Notif Raid Bosses')} (${settings.notifRaidPokemon.size})`)
-        }
-
-        $('label[for="no-notif-raid-pokemon"] .pokemon-filter-list .filter-button').each(function () {
-            if (settings.notifRaidPokemon.has($(this).data('id'))) {
-                $(this).addClass('active')
-            }
-        })
-
-        $('#no-notif-raid-pokemon').on('change', function (e) {
-            const noNotifPokemon = $(this).val().length > 0 ? new Set($(this).val().split(',').map(Number)) : new Set()
-            settings.notifRaidPokemon = difference(pokemonIds, noNotifPokemon)
-
-            updateGyms()
-
-            if (settings.notifRaidPokemon.size === pokemonIds.size) {
-                $('#notif-raid-pokemon-filter-title').text(`${i18n('Notif Raid Bosses')} (${i18n('All')})`)
-            } else {
-                $('#notif-raid-pokemon-filter-title').text(`${i18n('Notif Raid Bosses')} (${settings.notifRaidPokemon.size})`)
-            }
-
-            Store.set('notifRaidPokemon', settings.notifRaidPokemon)
-        })
-    }
-
-    if (serverSettings.quests) {
-        const noNotifPoke = difference(pokemonIds, settings.notifQuestPokemon)
-        $('#no-notif-quest-pokemon').val(Array.from(noNotifPoke))
-        if (settings.notifQuestPokemon.size === pokemonIds.size) {
-            $('a[href="#notif-quest-pokemon-tab"]').text(`${i18n('Notif Quest Pokémon')} (${i18n('All')})`)
-        } else {
-            $('a[href="#notif-quest-pokemon-tab"]').text(`${i18n('Notif Quest Pokémon')} (${settings.notifQuestPokemon.size})`)
-        }
-
-        $('label[for="no-notif-quest-pokemon"] .pokemon-filter-list .filter-button').each(function () {
-            if (settings.notifQuestPokemon.has($(this).data('id'))) {
-                $(this).addClass('active')
-            }
-        })
-
-        $('#no-notif-quest-pokemon').on('change', function (e) {
-            const noNotifPokemon = $(this).val().length > 0 ? new Set($(this).val().split(',').map(Number)) : new Set()
-            settings.notifQuestPokemon = difference(pokemonIds, noNotifPokemon)
-
-            updatePokestops()
-
-            if (settings.notifQuestPokemon.size === pokemonIds.size) {
-                $('a[href="#notif-quest-pokemon-tab"]').text(`${i18n('Notif Quest Pokémon')} (${i18n('All')})`)
-            } else {
-                $('a[href="#notif-quest-pokemon-tab"]').text(`${i18n('Notif Quest Pokémon')} (${settings.notifQuestPokemon.size})`)
-            }
-            $('#notif-quest-filter-tabs').tabs('updateTabIndicator')
-
-            Store.set('notifQuestPokemon', settings.notifQuestPokemon)
-        })
+        filterManagers.notifQuestPokemon = new PokemonFilterManager(
+            'notif-quest-filter-modal', 'notifQuestPokemon', i18n('Notif Quest Pokémon'), false,
+            () => updatePokestops(),
+            () => updatePokestops()
+        )
     }
 }
 
 function initItemFilters() {
-    $('.quest-filter-modal').modal({
-        onOpenEnd: function () {
-            $('.quest-filter-tabs').tabs('updateTabIndicator')
-        }
-    })
-
-    const questItemIds = []
-    const includeInFilter = [6, 1, 2, 3, 701, 703, 705, 706, 708, 101, 102, 103, 104, 201, 202, 1301, 1201, 1202, 501, 502, 503, 504, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 7]
-
-    let list = ''
-    for (let i = 0; i < includeInFilter.length; i++) {
-        const id = includeInFilter[i]
-        const iconUrl = getItemImageUrl(id)
-        const name = getItemName(id)
-        const questBundles = getQuestBundles(id)
-        if (questBundles.length === 0) {
-            questBundles.push(1)
-        }
-        $.each(questBundles, function (idx, bundleAmount) {
-            questItemIds.push(id + '_' + bundleAmount)
-            list += `
-                <div class='filter-button' data-id='${id}' data-bundle='${bundleAmount}'>
-                  <div class='filter-button-content'>
-                    <div>${name}</div>
-                    <div><img class='lazy' src='static/images/placeholder.png' data-src='${iconUrl}' width='32'></div>
-                    <div>x${bundleAmount}</div>
-                  </div>
-                </div>`
+    document.querySelectorAll('.quest-filter-modal').forEach(modalDiv => {
+        setModalFunction(modalDiv, 'onOpenEnd', () => {
+            M.Tabs.getInstance(modalDiv.querySelector('.quest-filter-tabs')).updateTabIndicator()
         })
-    }
-    $('.quest-item-filter-list').html(list)
+    })
 
-    $('.quest-item-filter-list').on('click', '.filter-button', function () {
-        const inputElement = $(this).parent().parent().find('input[id$=items]')
-        const value = inputElement.val().length > 0 ? inputElement.val().split(',') : []
-        let id = $(this).data('id').toString()
-        if ($(this).data('bundle')) {
-            id += '_' + $(this).data('bundle')
+    const questItemIds = new Set()
+    const includeInFilter = [6, 1, 2, 3, 701, 703, 705, 706, 708, 709, 101, 102, 103, 104, 201, 202, 1301, 1201, 1202, 501, 502, 503, 504, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 7]
+
+    for (const id of includeInFilter) {
+        for (const bundle of getQuestBundles(id)) {
+            questItemIds.add(id + '_' + bundle)
         }
-        if ($(this).hasClass('active')) {
-            inputElement.val((value.concat(id).join(','))).trigger('change')
-            $(this).removeClass('active')
-        } else {
-            inputElement.val(value.filter(function (elem) {
-                return elem !== id
-            }).join(',')).trigger('change')
-            $(this).addClass('active')
-        }
-    })
-
-    $('.quest-item-select-all').on('click', function (e) {
-        const parent = $(this).parent().parent().parent()
-        parent.find('.quest-item-filter-list .filter-button:visible').addClass('active')
-        parent.find('input[id$=items]').val('').trigger('change')
-    })
-
-    $('.quest-item-deselect-all').on('click', function (e) {
-        const parent = $(this).parent().parent().parent()
-        parent.find('.quest-item-filter-list .filter-button:visible').removeClass('active')
-        parent.find('input[id$=items]').val(questItemIds.join(',')).trigger('change')
-    })
-
-    $('#exclude-quest-items').val(settings.excludedQuestItems)
-    if (settings.excludedQuestItems.length === 0) {
-        $('a[href="#quest-item-tab"]').text(`${i18n('Quest Items')} (${i18n('All')})`)
-    } else {
-        $('a[href="#quest-item-tab"]').text(`${i18n('Quest Items')} (${questItemIds.length - settings.excludedQuestItems.length})`)
     }
 
-    $('label[for="exclude-quest-items"] .quest-item-filter-list .filter-button').each(function () {
-        let id = $(this).data('id').toString()
-        if ($(this).data('bundle')) {
-            id += '_' + $(this).data('bundle')
-        }
-        if (!settings.excludedQuestItems.includes(id)) {
-            $(this).addClass('active')
-        }
-    })
-
-    $('#exclude-quest-items').on('change', function () {
-        settings.excludedQuestItems = $(this).val().length > 0 ? $(this).val().split(',') : []
-
-        updatePokestops()
-        updateMap({ loadAllPokestops: true })
-
-        if (settings.excludedQuestItems.length === 0) {
-            $('a[href="#quest-item-tab"]').text(`${i18n('Quest Items')} (${i18n('All')})`)
-        } else {
-            $('a[href="#quest-item-tab"]').text(`${i18n('Quest Items')} (${questItemIds.length - settings.excludedQuestItems.length})`)
-        }
-        $('#quest-filter-tabs').tabs('updateTabIndicator')
-
-        Store.set('excludedQuestItems', settings.excludedQuestItems)
-    })
-
-    const noNotifItems = questItemIds.filter(id => !settings.notifQuestItems.includes(id))
-    $('#no-notif-quest-items').val(noNotifItems)
-    if (settings.notifQuestItems.length === questItemIds.length) {
-        $('a[href="#notif-quest-item-tab"]').text(`${i18n('Notif Quest Items')} (${i18n('All')})`)
-    } else {
-        $('a[href="#notif-quest-item-tab"]').text(`${i18n('Notif Quest Items')} (${settings.notifQuestItems.length})`)
+    class QuestItemFilterManager extends FilterManager {
+        getListSelector() { return '.quest-item-filter-list' }
+        getTitleSelector() { return '.quest-item-filter-title' }
+        getAllIds() { return questItemIds }
+        getButtonHeader(id) { return getItemName(id.substring(0, id.indexOf('_'))) }
+        getButtonFooter(id) { return '×' + id.substring(id.indexOf('_') + 1) }
+        getButtonIconUrl(id) { return getItemImageUrl(id.substring(0, id.indexOf('_'))) }
+        idFromString(idString) { return idString }
     }
 
-    $('label[for="no-notif-quest-items"] .quest-item-filter-list .filter-button').each(function () {
-        let id = $(this).data('id').toString()
-        if ($(this).data('bundle')) {
-            id += '_' + $(this).data('bundle')
+    filterManagers.excludedQuestItems = new QuestItemFilterManager(
+        'quest-filter-modal', 'excludedQuestItems', i18n('Quest Items'), true,
+        () => updatePokestops(),
+        () => {
+            updatePokestops()
+            updateMap({ loadAllPokestops: true })
         }
-        if (settings.notifQuestItems.includes(id)) {
-            $(this).addClass('active')
-        }
-    })
+    )
 
-    $('#no-notif-quest-items').on('change', function () {
-        const noNotifQuestItems = $(this).val().length > 0 ? $(this).val().split(',') : []
-        settings.notifQuestItems = questItemIds.filter(id => !noNotifQuestItems.includes(id))
-
-        updatePokestops()
-
-        if (settings.notifQuestItems.length === questItemIds.length) {
-            $('a[href="#notif-quest-item-tab"]').text(`${i18n('Notif Quest Items')} (${i18n('All')})`)
-        } else {
-            $('a[href="#notif-quest-item-tab"]').text(`${i18n('Notif Quest Items')} (${settings.notifQuestItems.length})`)
-        }
-        $('#notif-quest-filter-tabs').tabs('updateTabIndicator')
-
-        Store.set('notifQuestItems', settings.notifQuestItems)
-    })
+    filterManagers.notifQuestItems = new QuestItemFilterManager(
+        'notif-quest-filter-modal', 'notifQuestItems', i18n('Notif Quest Items'), false,
+        () => updatePokestops(),
+        () => updatePokestops()
+    )
 }
 
 function initInvasionFilters() {
-    const invasionIds = [41, 42, 43, 44, 5, 4, 6, 7, 10, 11, 12, 13, 49, 50, 14, 15, 16, 17, 18, 19, 20, 21, 47, 48, 22, 23, 24, 25, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37, 28, 29, 38, 39]
+    const invasionIds = new Set([41, 42, 43, 44, 5, 4, 6, 7, 10, 11, 12, 13, 49, 50, 14, 15, 16, 17, 18, 19, 20, 21, 47, 48, 22, 23, 24, 25, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37, 28, 29, 38, 39])
 
-    let list = ''
-    for (var i = 0; i < invasionIds.length; i++) {
-        const id = invasionIds[i]
-        const iconUrl = getInvasionImageUrl(id)
-        const type = getInvasionType(id)
-        const grunt = getInvasionGrunt(id)
-        list += `
-            <div class='filter-button' data-id='${id}'>
-              <div class='filter-button-content'>
-                <div>${type}</div>
-                <div><img class='lazy' src='static/images/placeholder.png' data-src='${iconUrl}' width='32'></div>
-                <div>${grunt}</div>
-              </div>
-            </div>`
-    }
-    $('.invasion-filter-list').html(list)
-
-    $('.invasion-filter-list').on('click', '.filter-button', function () {
-        var inputElement = $(this).parent().parent().find('input[id$=invasions]')
-        var value = inputElement.val().length > 0 ? inputElement.val().split(',') : []
-        var id = $(this).data('id').toString()
-        if ($(this).hasClass('active')) {
-            inputElement.val((value.concat(id).join(','))).trigger('change')
-            $(this).removeClass('active')
-        } else {
-            inputElement.val(value.filter(function (elem) {
-                return elem !== id
-            }).join(',')).trigger('change')
-            $(this).addClass('active')
-        }
-    })
-
-    $('.invasion-select-all').on('click', function (e) {
-        var parent = $(this).parent().parent().parent()
-        parent.find('.invasion-filter-list .filter-button:visible').addClass('active')
-        parent.find('input[id$=invasions]').val('').trigger('change')
-    })
-
-    $('.invasion-deselect-all').on('click', function (e) {
-        var parent = $(this).parent().parent().parent()
-        parent.find('.invasion-filter-list .filter-button:visible').removeClass('active')
-        parent.find('input[id$=invasions]').val(invasionIds.join(',')).trigger('change')
-    })
-
-    $('#exclude-invasions').val(settings.excludedInvasions)
-    if (settings.excludedInvasions.length === 0) {
-        $('#filter-invasion-title').text(`${i18n('Rocket Invasions')} (${i18n('All')})`)
-    } else {
-        $('#filter-invasion-title').text(`${i18n('Rocket Invasions')} (${invasionIds.length - settings.excludedInvasions.length})`)
+    class InvasionFilterManager extends FilterManager {
+        getListSelector() { return '.invasion-filter-list' }
+        getTitleSelector() { return '.invasion-filter-title' }
+        getAllIds() { return invasionIds }
+        getButtonHeader(id) { return getInvasionType(id) }
+        getButtonFooter(id) { return getInvasionGrunt(id) }
+        getButtonIconUrl(id) { return getInvasionImageUrl(id) }
+        idFromString(idString) { return parseInt(idString) }
     }
 
-    $('label[for="exclude-invasions"] .invasion-filter-list .filter-button').each(function () {
-        if (!settings.excludedInvasions.includes($(this).data('id'))) {
-            $(this).addClass('active')
+    filterManagers.excludedInvasions = new InvasionFilterManager(
+        'invasion-filter-modal', 'excludedInvasions', i18n('Rocket Invasions'), true,
+        () => updatePokestops(),
+        () => {
+            updatePokestops()
+            updateMap({ loadAllPokestops: true })
         }
-    })
+    )
 
-    $('#exclude-invasions').on('change', function () {
-        settings.excludedInvasions = $(this).val().length > 0 ? $(this).val().split(',').map(Number) : []
-
-        updatePokestops()
-        updateMap({ loadAllPokestops: true })
-
-        if (settings.excludedInvasions.length === 0) {
-            $('#filter-invasion-title').text(`${i18n('Rocket Invasions')} (${i18n('All')})`)
-        } else {
-            $('#filter-invasion-title').text(`${i18n('Rocket Invasions')} (${invasionIds.length - settings.excludedInvasions.length})`)
-        }
-
-        Store.set('excludedInvasions', settings.excludedInvasions)
-    })
-
-    const noNotifInvasions = invasionIds.filter(id => !settings.notifInvasions.includes(id))
-    $('#no-notif-invasions').val(noNotifInvasions)
-    if (settings.notifInvasions.length === invasionIds.length) {
-        $('#notif-invasion-filter-title').text(`${i18n('Notif Rocket Invasions')} (${i18n('All')})`)
-    } else {
-        $('#notif-invasion-filter-title').text(`${i18n('Notif Rocket Invasions')} (${settings.notifInvasions.length})`)
-    }
-
-    $('label[for="no-notif-invasions"] .invasion-filter-list .filter-button').each(function () {
-        if (settings.notifInvasions.includes($(this).data('id'))) {
-            $(this).addClass('active')
-        }
-    })
-
-    $('#no-notif-invasions').on('change', function () {
-        const noNotifInvasions = $(this).val().length > 0 ? $(this).val().split(',').map(Number) : []
-        settings.notifInvasions = invasionIds.filter(id => !noNotifInvasions.includes(id))
-
-        updatePokestops()
-
-        if (settings.notifInvasions.length === invasionIds.length) {
-            $('#notif-invasion-filter-title').text(`${i18n('Notif Rocket Invasions')} (${i18n('All')})`)
-        } else {
-            $('#notif-invasion-filter-title').text(`${i18n('Notif Rocket Invasions')} (${settings.notifInvasions.length})`)
-        }
-
-        Store.set('notifInvasions', settings.notifInvasions)
-    })
+    filterManagers.notifInvasions = new InvasionFilterManager(
+        'notif-invasion-filter-modal', 'notifInvasions', i18n('Notif Rocket Invasions'), false,
+        () => updatePokestops(),
+        () => updatePokestops()
+    )
 }
 
 function initBackupModals() {
@@ -2235,10 +2048,10 @@ function initBackupModals() {
     }
 
     function loaded(e) {
-        var fileString = e.target.result
-        var checkBoxSelected = false
+        const fileString = e.target.result
+        let checkBoxSelected = false
 
-        var pokemons = null
+        let pokemons = null
         try {
             pokemons = JSON.parse(fileString)
         } catch (e) {
@@ -2248,117 +2061,54 @@ function initBackupModals() {
             toastError(i18n('Error while reading Pokémon list file!'), i18n('Check your Pokémon list file.'))
             return
         }
-        for (var i = 0; i < pokemons.length; i++) {
+        for (let i = 0; i < pokemons.length; i++) {
             if (!Number.isInteger(pokemons[i])) {
                 toastError(i18n('Unexpected character found in Pokémon list file!'), i18n('Check your Pokémon list file.'))
                 return
             }
         }
 
-        const excludedPokemon = Array.from(pokemonIds).filter(id => !pokemons.includes(id))
+        const excludedPokemons = difference(pokemonIds, new Set(pokemons))
 
-        if (serverSettings.pokemons && $('#import-pokemon-checkbox').is(':checked')) {
-            checkBoxSelected = true
-            $('#exclude-pokemon').val(excludedPokemon).trigger('change')
-
-            $('label[for="exclude-pokemon"] .pokemon-filter-list .filter-button').each(function () {
-                if (!settings.excludedPokemon.has($(this).data('id'))) {
-                    $(this).addClass('active')
-                } else {
-                    $(this).removeClass('active')
-                }
-            })
+        function importFiltersIfChecked(checkBoxId, filterManager) {
+            const checkBox = document.getElementById(checkBoxId)
+            if (checkBox && checkBox.checked && filterManager) {
+                checkBoxSelected = true
+                filterManager.clear()
+                filterManager.isExclusion ? filterManager.add(excludedPokemons) : filterManager.add(pokemons)
+            }
         }
 
-        if (serverSettings.pokemonValues && $('#import-values-pokemon-checkbox').is(':checked')) {
-            checkBoxSelected = true
-            $('#unfiltered-pokemon').val(excludedPokemon).trigger('change')
-
-            $('label[for="unfiltered-pokemon"] .pokemon-filter-list .filter-button').each(function () {
-                if (!settings.noFilterValuesPokemon.has($(this).data('id'))) {
-                    $(this).addClass('active')
-                } else {
-                    $(this).removeClass('active')
-                }
-            })
+        if (serverSettings.pokemons) {
+            importFiltersIfChecked('import-pokemon-checkbox', filterManagers.excludedPokemon)
         }
 
-        if (serverSettings.raids && $('#import-raid-pokemon-checkbox').is(':checked')) {
-            checkBoxSelected = true
-            $('#exclude-raid-pokemon').val(excludedPokemon).trigger('change')
-
-            $('label[for="exclude-raid-pokemon"] .pokemon-filter-list .filter-button').each(function () {
-                if (!settings.excludedRaidPokemon.has($(this).data('id'))) {
-                    $(this).addClass('active')
-                } else {
-                    $(this).removeClass('active')
-                }
-            })
+        if (serverSettings.pokemonValues) {
+            importFiltersIfChecked('import-values-pokemon-checkbox', filterManagers.noFilterValuesPokemon)
         }
 
-        if (serverSettings.quests && $('#import-quest-pokemon-checkbox').is(':checked')) {
-            checkBoxSelected = true
-            $('#exclude-quest-pokemon').val(excludedPokemon).trigger('change')
-
-            $('label[for="exclude-quest-pokemon"] .pokemon-filter-list .filter-button').each(function () {
-                if (!settings.excludedQuestPokemon.has($(this).data('id'))) {
-                    $(this).addClass('active')
-                } else {
-                    $(this).removeClass('active')
-                }
-            })
+        if (serverSettings.raids) {
+            importFiltersIfChecked('import-raid-pokemon-checkbox', filterManagers.excludedRaidPokemon)
         }
 
-        if (serverSettings.pokemons && $('#import-notif-pokemon-checkbox').is(':checked')) {
-            checkBoxSelected = true
-            $('#no-notif-pokemon').val(excludedPokemon).trigger('change')
-
-            $('label[for="no-notif-pokemon"] .pokemon-filter-list .filter-button').each(function () {
-                if (settings.notifPokemon.has($(this).data('id'))) {
-                    $(this).addClass('active')
-                } else {
-                    $(this).removeClass('active')
-                }
-            })
+        if (serverSettings.quests) {
+            importFiltersIfChecked('import-quest-pokemon-checkbox', filterManagers.excludedQuestPokemon)
         }
 
-        if (serverSettings.pokemonValues && $('#import-notif-values-pokemon-checkbox').is(':checked')) {
-            checkBoxSelected = true
-            $('#no-notif-values-pokemon').val(excludedPokemon).trigger('change')
-
-            $('label[for="no-notif-values-pokemon"] .pokemon-filter-list .filter-button').each(function () {
-                if (settings.notifValuesPokemon.has($(this).data('id'))) {
-                    $(this).addClass('active')
-                } else {
-                    $(this).removeClass('active')
-                }
-            })
+        if (serverSettings.pokemons) {
+            importFiltersIfChecked('import-notif-pokemon-checkbox', filterManagers.notifPokemon)
         }
 
-        if (serverSettings.raids && $('#import-notif-raid-pokemon-checkbox').is(':checked')) {
-            checkBoxSelected = true
-            $('#no-notif-raid-pokemon').val(excludedPokemon).trigger('change')
-
-            $('label[for="no-notif-raid-pokemon"] .pokemon-filter-list .filter-button').each(function () {
-                if (settings.notifRaidPokemon.has($(this).data('id'))) {
-                    $(this).addClass('active')
-                } else {
-                    $(this).removeClass('active')
-                }
-            })
+        if (serverSettings.pokemonValues) {
+            importFiltersIfChecked('import-notif-values-pokemon-checkbox', filterManagers.notifValuesPokemon)
         }
 
-        if (serverSettings.quests && $('#import-notif-quest-pokemon-checkbox').is(':checked')) {
-            checkBoxSelected = true
-            $('#no-notif-quest-pokemon').val(excludedPokemon).trigger('change')
+        if (serverSettings.raids) {
+            importFiltersIfChecked('import-notif-raid-pokemon-checkbox', filterManagers.notifRaidPokemon)
+        }
 
-            $('label[for="no-notif-quest-pokemon"] .pokemon-filter-list .filter-button').each(function () {
-                if (settings.notifQuestPokemon.has($(this).data('id'))) {
-                    $(this).addClass('active')
-                } else {
-                    $(this).removeClass('active')
-                }
-            })
+        if (serverSettings.quests) {
+            importFiltersIfChecked('import-notif-quest-pokemon-checkbox', filterManagers.notifQuestPokemon)
         }
 
         if (checkBoxSelected) {

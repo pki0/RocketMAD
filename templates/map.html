@@ -182,7 +182,7 @@
     {% if settings.pokemons %}
     <div id="pokemon-filter-modal" class="modal filter-modal pokemon-filter-modal">
       <div class="modal-content">
-        <h6 id="filter-pokemon-title">Pokémon</h6>
+        <h6 class="pokemon-filter-title">{{ i18n('Pokémon') }}</h6>
         <label for="exclude-pokemon">
           <input id="exclude-pokemon" type="text" readonly="true" style="display:none;">
           <div class="pokemon-filter-list"></div>
@@ -192,10 +192,8 @@
               <input type="search" class="search" placeholder="{{ i18n('Search...') }}">
             </div>
             <div class="filter-footer-right">
-              <a class="waves-effect btn-flat pokemon-select-filtered" style="display:none;"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-              <a class="waves-effect btn-flat pokemon-deselect-filtered" style="display:none;"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
-              <a class="waves-effect btn-flat pokemon-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-              <a class="waves-effect btn-flat pokemon-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
+              <a class="waves-effect btn-flat filter-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
+              <a class="waves-effect btn-flat filter-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
             </div>
           </div>
         </label>
@@ -206,7 +204,7 @@
     {% if settings.pokemonValues %}
     <div id="pokemon-values-filter-modal" class="modal filter-modal pokemon-filter-modal">
       <div class="modal-content">
-        <h6 id="filter-values-pokemon-title">{{ i18n('Pokémon filtered by values') }}</h6>
+        <h6 class="pokemon-filter-title">{{ i18n('Pokémon filtered by values') }}</h6>
         <label for="unfiltered-pokemon">
           <input id="unfiltered-pokemon" type="text" readonly="true" style="display:none;">
           <div class="pokemon-filter-list"></div>
@@ -216,10 +214,8 @@
               <input type="search" class="search" placeholder="{{ i18n('Search...') }}">
             </div>
             <div class="filter-footer-right">
-              <a class="waves-effect btn-flat pokemon-select-filtered" style="display:none;"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-              <a class="waves-effect btn-flat pokemon-deselect-filtered" style="display:none;"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
-              <a class="waves-effect btn-flat pokemon-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-              <a class="waves-effect btn-flat pokemon-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
+              <a class="waves-effect btn-flat filter-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
+              <a class="waves-effect btn-flat filter-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
             </div>
           </div>
         </label>
@@ -230,7 +226,7 @@
     {% if settings.raidFilters %}
     <div id="raid-pokemon-filter-modal" class="modal filter-modal pokemon-filter-modal">
       <div class="modal-content">
-        <h6 id="filter-raid-pokemon-title">Raid Bosses</h6>
+        <h6 class="pokemon-filter-title">{{ i18n('Raid Bosses') }}</h6>
         <label for="exclude-raid-pokemon">
           <input id="exclude-raid-pokemon" type="text" readonly="true" style="display:none;">
           <div class="pokemon-filter-list"></div>
@@ -240,10 +236,8 @@
               <input type="search" class="search" placeholder="{{ i18n('Search...') }}">
             </div>
             <div class="filter-footer-right">
-              <a class="waves-effect btn-flat pokemon-select-filtered" style="display:none;"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-              <a class="waves-effect btn-flat pokemon-deselect-filtered" style="display:none;"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
-              <a class="waves-effect btn-flat pokemon-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-              <a class="waves-effect btn-flat pokemon-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
+              <a class="waves-effect btn-flat filter-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
+              <a class="waves-effect btn-flat filter-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
             </div>
           </div>
         </label>
@@ -254,9 +248,9 @@
     {% if settings.quests %}
     <div id="quest-filter-modal" class="modal filter-modal quest-filter-modal">
       <div class="modal-content">
-        <ul id ="quest-filter-tabs" class="tabs quest-filter-tabs">
-          <li class="tab"><a href="#quest-pokemon-tab" class="active">Quest Pokémon</a></li>
-          <li class="tab"><a href="#quest-item-tab">Quest Items</a></li>
+        <ul id="quest-filter-tabs" class="tabs quest-filter-tabs">
+          <li class="tab"><a href="#quest-pokemon-tab" class="pokemon-filter-title active">Quest Pokémon</a></li>
+          <li class="tab"><a href="#quest-item-tab" class="quest-item-filter-title">{{ i18n('Quest Items') }}</a></li>
         </ul>
         <div id="quest-pokemon-tab">
           <label for="exclude-quest-pokemon">
@@ -268,10 +262,8 @@
                 <input type="search" class="search" placeholder="{{ i18n('Search...') }}">
               </div>
               <div class="filter-footer-right">
-                <a class="waves-effect btn-flat pokemon-select-filtered" style="display:none;"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-                <a class="waves-effect btn-flat pokemon-deselect-filtered" style="display:none;"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
-                <a class="waves-effect btn-flat pokemon-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-                <a class="waves-effect btn-flat pokemon-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
+                <a class="waves-effect btn-flat filter-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
+                <a class="waves-effect btn-flat filter-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
               </div>
             </div>
           </label>
@@ -283,8 +275,8 @@
             <div class="filter-footer-container">
               <div></div>
               <div class="filter-footer-right">
-                <a class="waves-effect btn-flat quest-item-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-                <a class="waves-effect btn-flat quest-item-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
+                <a class="waves-effect btn-flat filter-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
+                <a class="waves-effect btn-flat filter-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
               </div>
             </div>
           </label>
@@ -296,15 +288,15 @@
     {% if settings.invasions %}
     <div id="invasion-filter-modal" class="modal filter-modal invasion-filter-modal">
       <div class="modal-content">
-        <h6 id="filter-invasion-title">Rocket Invasions</h6>
+        <h6 class="invasion-filter-title">{{ i18n('Rocket Invasions') }}</h6>
         <label for="exclude-invasions">
           <input id="exclude-invasions" type="text" readonly="true" style="display:none;">
           <div class="invasion-filter-list"></div>
           <div class="filter-footer-container">
             <div></div>
             <div class="filter-footer-right">
-              <a class="waves-effect btn-flat invasion-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-              <a class="waves-effect btn-flat invasion-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
+              <a class="waves-effect btn-flat filter-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
+              <a class="waves-effect btn-flat filter-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
             </div>
           </div>
         </label>
@@ -326,7 +318,7 @@
     {% if settings.pokemons %}
     <div id="notif-pokemon-filter-modal" class="modal filter-modal pokemon-filter-modal">
       <div class="modal-content">
-        <h6 id="notif-pokemon-filter-title">Notif Pokémon</h6>
+        <h6 class="pokemon-filter-title">{{ i18n('Notif Pokémon') }}</h6>
         <label for="no-notif-pokemon">
           <input id="no-notif-pokemon" type="text" readonly="true" style="display:none;">
           <div class="pokemon-filter-list"></div>
@@ -336,10 +328,8 @@
               <input type="search" class="search" placeholder="{{ i18n('Search...') }}">
             </div>
             <div class="filter-footer-right">
-              <a class="waves-effect btn-flat pokemon-select-filtered" style="display:none;"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-              <a class="waves-effect btn-flat pokemon-deselect-filtered" style="display:none;"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
-              <a class="waves-effect btn-flat pokemon-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-              <a class="waves-effect btn-flat pokemon-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
+              <a class="waves-effect btn-flat filter-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
+              <a class="waves-effect btn-flat filter-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
             </div>
           </div>
         </label>
@@ -350,7 +340,7 @@
     {% if settings.pokemonValues %}
     <div id="notif-pokemon-values-filter-modal" class="modal filter-modal pokemon-filter-modal">
       <div class="modal-content">
-        <h6 id="notif-pokemon-values-filter-title">{{ i18n('Notif Pokémon filtered by values') }}</h6>
+        <h6 class="pokemon-filter-title">{{ i18n('Notif Pokémon filtered by values') }}</h6>
         <label for="no-notif-values-pokemon">
           <input id="no-notif-values-pokemon" type="text" readonly="true" style="display:none;">
           <div class="pokemon-filter-list"></div>
@@ -360,10 +350,8 @@
               <input type="search" class="search" placeholder="{{ i18n('Search...') }}">
             </div>
             <div class="filter-footer-right">
-              <a class="waves-effect btn-flat pokemon-select-filtered" style="display:none;"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-              <a class="waves-effect btn-flat pokemon-deselect-filtered" style="display:none;"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
-              <a class="waves-effect btn-flat pokemon-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-              <a class="waves-effect btn-flat pokemon-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
+              <a class="waves-effect btn-flat filter-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
+              <a class="waves-effect btn-flat filter-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
             </div>
           </div>
         </label>
@@ -374,7 +362,7 @@
     {% if settings.raids %}
     <div id="notif-raid-pokemon-filter-modal" class="modal filter-modal pokemon-filter-modal">
       <div class="modal-content">
-        <h6 id="notif-raid-pokemon-filter-title">Notif Raid Bosses</h6>
+        <h6 class="pokemon-filter-title">{{ i18n('Notif Raid Bosses') }}</h6>
         <label for="no-notif-raid-pokemon">
           <input id="no-notif-raid-pokemon" type="text" readonly="true" style="display:none;">
           <div class="pokemon-filter-list"></div>
@@ -384,10 +372,8 @@
               <input type="search" class="search" placeholder="{{ i18n('Search...') }}">
             </div>
             <div class="filter-footer-right">
-              <a class="waves-effect btn-flat pokemon-select-filtered" style="display:none;"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-              <a class="waves-effect btn-flat pokemon-deselect-filtered" style="display:none;"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
-              <a class="waves-effect btn-flat pokemon-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-              <a class="waves-effect btn-flat pokemon-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
+              <a class="waves-effect btn-flat filter-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
+              <a class="waves-effect btn-flat filter-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
             </div>
           </div>
         </label>
@@ -398,9 +384,9 @@
     {% if settings.quests %}
     <div id="notif-quest-filter-modal" class="modal filter-modal quest-filter-modal">
       <div class="modal-content">
-        <ul id ="notif-quest-filter-tabs" class="tabs quest-filter-tabs">
-          <li class="tab"><a href="#notif-quest-pokemon-tab" class="active">Notif Quest Pokémon</a></li>
-          <li class="tab"><a href="#notif-quest-item-tab">Notif Quest Items</a></li>
+        <ul id="notif-quest-filter-tabs" class="tabs quest-filter-tabs">
+          <li class="tab"><a href="#notif-quest-pokemon-tab" class="pokemon-filter-title active">{{ i18n('Notif Quest Pokémon') }}</a></li>
+          <li class="tab"><a href="#notif-quest-item-tab" class="quest-item-filter-title">{{ i18n('Notif Quest Items') }}</a></li>
         </ul>
         <div id="notif-quest-pokemon-tab">
           <label for="no-notif-quest-pokemon">
@@ -412,10 +398,8 @@
                 <input type="search" class="search" placeholder="{{ i18n('Search...') }}">
               </div>
               <div class="filter-footer-right">
-                <a class="waves-effect btn-flat pokemon-select-filtered" style="display:none;"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-                <a class="waves-effect btn-flat pokemon-deselect-filtered" style="display:none;"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
-                <a class="waves-effect btn-flat pokemon-select-all"><i class="material-icons" title="Select all">select_all</i></a>
-                <a class="waves-effect btn-flat pokemon-deselect-all"><i class="material-icons" title="Deselect all">delete_forever</i></a>
+                <a class="waves-effect btn-flat filter-select-all"><i class="material-icons" title="Select all">select_all</i></a>
+                <a class="waves-effect btn-flat filter-deselect-all"><i class="material-icons" title="Deselect all">delete_forever</i></a>
               </div>
             </div>
           </label>
@@ -427,8 +411,8 @@
             <div class="filter-footer-container">
               <div></div>
               <div class="filter-footer-right">
-                <a class="waves-effect btn-flat quest-item-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-                <a class="waves-effect btn-flat quest-item-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
+                <a class="waves-effect btn-flat filter-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
+                <a class="waves-effect btn-flat filter-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
               </div>
             </div>
           </label>
@@ -440,15 +424,15 @@
     {% if settings.invasions %}
     <div id="notif-invasion-filter-modal" class="modal filter-modal invasion-filter-modal">
       <div class="modal-content">
-        <h6 id="notif-invasion-filter-title">Notif Rocket Invasions</h6>
+        <h6 class="invasion-filter-title">{{ i18n('Notif Rocket Invasions') }}</h6>
         <label for="no-notif-invasions">
           <input id="no-notif-invasions" type="text" readonly="true" style="display:none;">
           <div class="invasion-filter-list"></div>
           <div class="filter-footer-container">
             <div></div>
             <div class="filter-footer-right">
-              <a class="waves-effect btn-flat invasion-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
-              <a class="waves-effect btn-flat invasion-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
+              <a class="waves-effect btn-flat filter-select-all"><i class="material-icons" title="{{ i18n('Select all') }}">select_all</i></a>
+              <a class="waves-effect btn-flat filter-deselect-all"><i class="material-icons" title="{{ i18n('Deselect all') }}">delete_forever</i></a>
             </div>
           </div>
         </label>
