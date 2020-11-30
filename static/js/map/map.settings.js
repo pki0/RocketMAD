@@ -1543,7 +1543,7 @@ function initSettingsSidebar() {
         updateStartLocationMarker()
         updateUserLocationMarker()
 
-        const startSelect = document.getElementById('start-location-marker-icon-select')
+        //const startSelect = document.getElementById('start-location-marker-icon-select')
         const userSelect = document.getElementById('user-location-marker-icon-select')
 
         $.each(data, function (id, value) {
@@ -1551,7 +1551,7 @@ function initSettingsSidebar() {
             option.value = id
             option.dataset.icon = value.icon ? value.icon : ''
             option.text = i18n(value.name)
-            startSelect.options.add(option.cloneNode(true))
+            //startSelect.options.add(option.cloneNode(true))
             userSelect.options.add(option)
         })
 
@@ -1562,7 +1562,7 @@ function initSettingsSidebar() {
             }
         }
 
-        updateMarkerIconSelect(startSelect, settings.startLocationMarkerStyle)
+        //updateMarkerIconSelect(startSelect, settings.startLocationMarkerStyle)
         updateMarkerIconSelect(userSelect, settings.userLocationMarkerStyle)
     }).fail(function () {
         console.log('Error loading search marker styles JSON.')
