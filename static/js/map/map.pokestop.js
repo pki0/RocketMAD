@@ -218,7 +218,6 @@ function pokestopLabel(pokestop) {
 
         const notifText = isNotifQuest ? i18n('Don\'t notify') : i18n('Notify')
         const notifIconClass = isNotifQuest ? 'fas fa-bell-slash' : 'fas fa-bell'
-
         questDisplay = `
             <div class='section-divider'></div>
             <div class='pokestop-container'>
@@ -245,6 +244,7 @@ function pokestopLabel(pokestop) {
                 <div>
                   <a href='javascript:${notifFunction}' class='link-button' title="${notifText}"><i class="${notifIconClass}"></i></a>
                   <a href='javascript:${excludeFunction}' class='link-button' title=${i18n('Hide')}><i class="fas fa-eye-slash"></i></a>
+                  <a href='javascript:removePokestopMarker("${pokestop.pokestop_id}")' class='link-button' title='Remove'><i class="fas fa-trash"></i></a>
                   ${infoButtonDisplay}
                 </div>
               </div>
@@ -318,6 +318,7 @@ function pokestopLabel(pokestop) {
                 <div>
                   <a href='javascript:toggleInvasionNotif(${invasionId})' class='link-button' title="${notifText}"><i class="${notifIconClass}"></i></a>
                   <a href='javascript:excludeInvasion(${invasionId})' class='link-button' title=${i18n('Hide')}><i class="fas fa-eye-slash"></i></a>
+                  <a href='javascript:removePokestopMarker("${pokestop.pokestop_id}")' class='link-button' title='Remove'><i class="fas fa-trash"></i></a>
                 </div>
               </div>
             </div>`
@@ -511,6 +512,11 @@ function removePokestop(pokestop) {
         }
     }
 }
+
+function removePokestopMarker(id) {
+       removeMarker(mapData.pokestops[id].marker)
+}
+
 
 function excludeQuestPokemon(id) { // eslint-disable-line no-unused-vars
     if (filterManagers.excludedQuestPokemon !== null) {
