@@ -244,7 +244,7 @@ function pokestopLabel(pokestop) {
                 <div>
                   <a href='javascript:${notifFunction}' class='link-button' title="${notifText}"><i class="${notifIconClass}"></i></a>
                   <a href='javascript:${excludeFunction}' class='link-button' title=${i18n('Hide')}><i class="fas fa-eye-slash"></i></a>
-                  <a href='javascript:removePokestopMarker("${pokestop.pokestop_id}")' class='link-button' title='Remove'><i class="fas fa-trash"></i></a>
+                  <a href='javascript:removePokestopMarker("${pokestop.pokestop_id}")' class='link-button' title=${i18n('Remove')}><i class="fas fa-trash"></i></a>
                   ${infoButtonDisplay}
                 </div>
               </div>
