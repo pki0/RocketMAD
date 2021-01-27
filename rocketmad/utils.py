@@ -595,7 +595,11 @@ def get_args(access_config=None):
                        help='Filename (without .json) of rarity JSON '
                             'file. Useful when running multiple '
                             'instances. Default: rarity')
-    group.add_argument('-kiel', '--kiel',
+    group.add_argument('-LKi', '--loc-ki',
+                       default=[])
+    group.add_argument('-LBr', '--loc-br',
+                       default=[])
+    group.add_argument('-LZw', '--loc-zw',
                        default=[])
 
     args = parser.parse_args()

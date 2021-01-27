@@ -1505,7 +1505,7 @@
               <div class="form-control">
                 <div><a href="{{ telegram_url }}" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left">send</i>Telegram-Gruppen</a></div>
               </div>
-            {% if kiel %}
+            {% if loc_ki %}
               <div class="form-control">
                 <div><a href="nester" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left">pets</i>Nester-Map</a></div>
               </div>
@@ -1513,12 +1513,14 @@
                 <div><a href="questmap" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left">not_listed_location</i>Quest-Map</a></div>
               </div>
             {% endif %}
-            <div class="form-control">
-              <div><a href="https://t.me/PoGoBatmanBot" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left">android</i>Bot: Pokemon</a></div>
-            </div>
+            {% if loc_ki or loc_zw %}
+              <div class="form-control">
+                <div><a href="https://t.me/PoGoBatmanBot" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left">android</i>Bot: Pokemon</a></div>
+              </div>
             <div class="form-control">
               <div><a href="https://t.me/GoKielRocketManBot" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left">android</i>Bot: Rocket</a></div>
             </div>
+            {% endif %}
             <div class="form-control">
               <div><a href="https://t.me/nerthusbot" target="_blank" class="waves-effect waves-light btn"><i class="material-icons left">android</i>Bot: Raid</a></div>
             </div>
